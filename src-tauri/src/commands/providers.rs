@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_validate_env_empty_key() {
         let mut env = HashMap::new();
-        env.insert("".to_string(), "value".to_string());
+        env.insert(String::new(), "value".to_string());
         assert!(validate_env(&env).is_err());
     }
 
@@ -323,8 +323,7 @@ mod tests {
             env.insert(var.to_string(), "value".to_string());
             assert!(
                 validate_env(&env).is_err(),
-                "Should reject dangerous env var: {}",
-                var
+                "Should reject dangerous env var: {var}"
             );
         }
     }
@@ -345,8 +344,7 @@ mod tests {
             env.insert("API_KEY".to_string(), value.to_string());
             assert!(
                 validate_env(&env).is_err(),
-                "Should reject dangerous value: {}",
-                value
+                "Should reject dangerous value: {value}"
             );
         }
     }

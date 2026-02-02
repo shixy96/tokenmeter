@@ -132,6 +132,7 @@ fn calculate_cost(input_tokens: u64, output_tokens: u64, price: &ModelPrice) -> 
 }
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 

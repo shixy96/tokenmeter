@@ -63,6 +63,7 @@ pub struct ApiProvider {
 }
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 

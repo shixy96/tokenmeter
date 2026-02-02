@@ -1,17 +1,17 @@
 {
-  "name": "token-meter",
+  "name": "tokenmeter",
   "version": "0.1.0",
   "description": "macOS menu bar app for tracking API usage and costs, including Claude.",
   "license": "MIT",
   "author": "shixy",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shixy96/token-meter.git"
+    "url": "git+https://github.com/shixy96/tokenmeter.git"
   },
   "bugs": {
-    "url": "https://github.com/shixy96/token-meter/issues"
+    "url": "https://github.com/shixy96/tokenmeter/issues"
   },
-  "homepage": "https://github.com/shixy96/token-meter#readme",
+  "homepage": "https://github.com/shixy96/tokenmeter#readme",
   "keywords": [
     "tauri",
     "macos",
