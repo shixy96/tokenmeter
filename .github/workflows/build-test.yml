@@ -6,9 +6,9 @@ on:
     branches: [main]
     paths:
       - 'src-tauri/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/release.yml'
+      - package.json
+      - package-lock.json
+      - .github/workflows/release.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
