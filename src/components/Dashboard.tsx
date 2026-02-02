@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Bar,
   CartesianGrid,
@@ -55,6 +56,7 @@ export function Dashboard() {
   const queryClient = useQueryClient()
   const { toggleTheme, isDark } = useTheme()
   const [timeRange, setTimeRange] = useState<TimeRange>(7)
+  const { t } = useTranslation('dashboard')
 
   // Listen for preloaded data event from backend
   useEffect(() => {
@@ -126,9 +128,9 @@ export function Dashboard() {
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <RefreshCw className="w-12 h-12 animate-spin text-primary" />
         <div className="text-center">
-          <p className="text-lg font-medium">Loading usage data...</p>
+          <p className="text-lg font-medium">{t('loading.title')}</p>
           <p className="text-sm text-muted-foreground">
-            This may take up to 30 seconds on first load
+            {t('loading.description')}
           </p>
         </div>
       </div>
@@ -144,16 +146,15 @@ export function Dashboard() {
     if (isCcusageNotFound) {
       return (
         <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
-          <p className="text-lg font-medium">ccusage not installed</p>
+          <p className="text-lg font-medium">{t('error.ccusageNotInstalled')}</p>
           <p className="text-sm text-muted-foreground text-center max-w-md">
-            TokenMeter requires ccusage to fetch Claude usage data.
-            Please install it first:
+            {t('error.ccusageDescription')}
           </p>
           <code className="bg-muted px-3 py-2 rounded text-sm">
             npm install -g ccusage
           </code>
           <Button onClick={() => refreshMutation.mutate()}>
-            Retry after installing
+            {t('error.retryAfterInstalling')}
           </Button>
         </div>
       )
@@ -161,11 +162,11 @@ export function Dashboard() {
 
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
-        <p className="text-destructive">Failed to load usage data</p>
+        <p className="text-destructive">{t('error.loadFailed')}</p>
         <p className="text-sm text-muted-foreground text-center max-w-md">
           {errorMessage}
         </p>
-        <Button onClick={() => refreshMutation.mutate()}>Retry</Button>
+        <Button onClick={() => refreshMutation.mutate()}>{t('common:retry')}</Button>
       </div>
     )
   }
@@ -194,12 +195,12 @@ export function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">使用统计</h1>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
             {isRefreshing && (
               <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
             )}
           </div>
-          <p className="text-sm text-muted-foreground">查看 API 使用情况和消费明细</p>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Time Range Toggle */}
@@ -209,14 +210,14 @@ export function Dashboard() {
               onClick={() => setTimeRange(7)}
               className={getTimeRangeButtonClass(timeRange === 7)}
             >
-              7天
+              {t('timeRange.days7')}
             </button>
             <button
               type="button"
               onClick={() => setTimeRange(30)}
               className={getTimeRangeButtonClass(timeRange === 30)}
             >
-              30天
+              {t('timeRange.days30')}
             </button>
           </div>
 
@@ -246,7 +247,7 @@ export function Dashboard() {
         {/* Cost Overview Card */}
         <Card className="border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">费用概览</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('stats.costOverview')}</CardTitle>
             <DollarSign className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -254,11 +255,7 @@ export function Dashboard() {
               {formatCost(periodTotals.cost)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              过去
-              {' '}
-              {timeRange}
-              {' '}
-              天总费用
+              {t('stats.lastNDays', { days: timeRange })}
             </p>
           </CardContent>
         </Card>
@@ -266,29 +263,29 @@ export function Dashboard() {
         {/* Token Overview Card */}
         <Card className="border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">消耗概览</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t('stats.tokenOverview')}</CardTitle>
             <Zap className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold">{formatTokens(periodTotals.totalTokens)}</span>
-              <span className="text-sm text-muted-foreground">总Token</span>
+              <span className="text-sm text-muted-foreground">{t('stats.totalTokens')}</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">总输入</span>
+                <span className="text-muted-foreground">{t('stats.totalInput')}</span>
                 <span>{formatTokens(periodTotals.inputTokens)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">总输出</span>
+                <span className="text-muted-foreground">{t('stats.totalOutput')}</span>
                 <span>{formatTokens(periodTotals.outputTokens)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">缓存读取</span>
+                <span className="text-muted-foreground">{t('stats.cacheRead')}</span>
                 <span>{formatTokens(cacheReadTokens)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">缓存写入</span>
+                <span className="text-muted-foreground">{t('stats.cacheWrite')}</span>
                 <span>{formatTokens(cacheWriteTokens)}</span>
               </div>
             </div>
@@ -303,9 +300,9 @@ export function Dashboard() {
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">使用趋势</CardTitle>
+              <CardTitle className="text-base">{t('chart.usageTrend')}</CardTitle>
             </div>
-            <p className="text-sm text-muted-foreground">Token (柱状) vs 费用 (曲线)</p>
+            <p className="text-sm text-muted-foreground">{t('chart.usageTrendSubtitle')}</p>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -342,10 +339,10 @@ export function Dashboard() {
                   }}
                   formatter={(value, name) => {
                     if (name === 'tokens')
-                      return [formatTokens(Number(value)), 'Token']
-                    return [`$${Number(value).toFixed(4)}`, '费用']
+                      return [formatTokens(Number(value)), t('chart.tokens')]
+                    return [`$${Number(value).toFixed(4)}`, t('chart.cost')]
                   }}
-                  labelFormatter={label => `日期: ${label}`}
+                  labelFormatter={label => `${t('chart.date')}: ${label}`}
                   labelStyle={{ color: 'var(--color-popover-foreground)' }}
                 />
                 <Legend
@@ -353,8 +350,8 @@ export function Dashboard() {
                   height={36}
                   formatter={(value) => {
                     if (value === 'tokens')
-                      return 'Token'
-                    return '费用'
+                      return t('chart.tokens')
+                    return t('chart.cost')
                   }}
                 />
                 <Bar
@@ -383,14 +380,10 @@ export function Dashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="flex items-center gap-2">
               <PieChartIcon className="w-4 h-4 text-muted-foreground" />
-              <CardTitle className="text-base">模型分布</CardTitle>
+              <CardTitle className="text-base">{t('chart.modelDistribution')}</CardTitle>
             </div>
             <span className="text-sm text-muted-foreground">
-              共
-              {' '}
-              {modelBreakdown.length}
-              {' '}
-              个模型
+              {t('chart.modelCount', { count: modelBreakdown.length })}
             </span>
           </CardHeader>
           <CardContent className="h-[300px]">
@@ -427,7 +420,7 @@ export function Dashboard() {
                             itemStyle={{
                               color: 'var(--color-popover-foreground)',
                             }}
-                            formatter={value => [`$${Number(value).toFixed(4)}`, '费用']}
+                            formatter={value => [`$${Number(value).toFixed(4)}`, t('chart.cost')]}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -455,10 +448,7 @@ export function Dashboard() {
                       ))}
                       {modelBreakdown.length > 6 && (
                         <div className="text-xs text-muted-foreground text-center pt-2">
-                          +
-                          {modelBreakdown.length - 6}
-                          {' '}
-                          个其他模型
+                          {t('chart.otherModels', { count: modelBreakdown.length - 6 })}
                         </div>
                       )}
                     </div>
@@ -466,7 +456,7 @@ export function Dashboard() {
                 )
               : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
-                    No model data available
+                    {t('chart.noModelData')}
                   </div>
                 )}
           </CardContent>

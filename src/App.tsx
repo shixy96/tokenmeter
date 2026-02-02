@@ -1,15 +1,19 @@
 import { listen } from '@tauri-apps/api/event'
 import { BarChart3, Plug, Settings as SettingsIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dashboard } from '@/components/Dashboard'
 import { ProviderEditor } from '@/components/ProviderEditor'
 import { Settings } from '@/components/Settings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useConfigEvents } from '@/hooks/useConfigEvents'
 import { useTheme } from '@/hooks/useTheme'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const { t } = useTranslation()
   useTheme()
+  useConfigEvents()
 
   useEffect(() => {
     let unlisten: (() => void) | undefined
@@ -29,7 +33,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* 顶部拖拽区域 - 为窗口控制按钮留出空间 */}
+      {/* Top drag region - leave space for window control buttons */}
       <div className="h-10 bg-background" data-tauri-drag-region />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="border-b bg-background" data-tauri-drag-region>
@@ -37,15 +41,15 @@ function App() {
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                Dashboard
+                {t('nav.dashboard')}
               </TabsTrigger>
               <TabsTrigger value="providers" className="flex items-center gap-2">
                 <Plug className="w-4 h-4" />
-                Providers
+                {t('nav.providers')}
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <SettingsIcon className="w-4 h-4" />
-                Settings
+                {t('nav.settings')}
               </TabsTrigger>
             </TabsList>
           </div>

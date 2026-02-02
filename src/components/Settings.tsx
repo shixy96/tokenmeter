@@ -1,11 +1,14 @@
 import type { AppConfig } from '@/types'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { useLanguage } from '@/hooks/useLanguage'
 import { useConfig, useSaveConfig } from '@/hooks/useUsageData'
 import { setLaunchAtLogin } from '@/lib/api'
 
@@ -14,11 +17,13 @@ export function Settings() {
   const saveMutation = useSaveConfig()
   const [localConfig, setLocalConfig] = useState<AppConfig | null>(null)
   const [autoLaunchError, setAutoLaunchError] = useState<string | null>(null)
+  const { t } = useTranslation('settings')
+  const { languagePreference, changeLanguage } = useLanguage()
 
   const currentConfig = localConfig || config
 
   if (isLoading || !currentConfig) {
-    return <div className="p-6">Loading settings...</div>
+    return <div className="p-6">{t('loading')}</div>
   }
 
   const handleSave = async () => {
@@ -75,22 +80,22 @@ export function Settings() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <Button onClick={handleSave} disabled={!hasChanges || saveMutation.isPending}>
-          {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
+          {saveMutation.isPending ? t('saving') : t('saveChanges')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
+          <CardTitle>{t('general.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Launch at Login</Label>
+              <Label>{t('general.launchAtLogin')}</Label>
               <p className="text-sm text-muted-foreground">
-                Start TokenMeter when you log in
+                {t('general.launchAtLoginDescription')}
               </p>
             </div>
             <Switch
@@ -100,7 +105,7 @@ export function Settings() {
           </div>
           {autoLaunchError && (
             <p className="text-sm text-red-500">
-              Failed to update auto-launch setting:
+              {t('general.autoLaunchError')}
               {' '}
               {autoLaunchError}
             </p>
@@ -109,7 +114,7 @@ export function Settings() {
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="refreshInterval">Refresh Interval (seconds)</Label>
+            <Label htmlFor="refreshInterval">{t('general.refreshInterval')}</Label>
             <Input
               id="refreshInterval"
               type="number"
@@ -124,7 +129,25 @@ export function Settings() {
               }}
             />
             <p className="text-sm text-muted-foreground">
-              How often to fetch usage data (60-3600 seconds)
+              {t('general.refreshIntervalDescription')}
+            </p>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label htmlFor="language">{t('general.language')}</Label>
+            <Select
+              id="language"
+              value={languagePreference}
+              onChange={e => changeLanguage(e.target.value as 'system' | 'en' | 'zh')}
+            >
+              <option value="system">{t('general.languageSystem')}</option>
+              <option value="en">{t('general.languageEn')}</option>
+              <option value="zh">{t('general.languageZh')}</option>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              {t('general.languageDescription')}
             </p>
           </div>
         </CardContent>
@@ -132,26 +155,26 @@ export function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Menu Bar Display</CardTitle>
+          <CardTitle>{t('menuBar.title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="format">Display Format</Label>
+            <Label htmlFor="format">{t('menuBar.format')}</Label>
             <Input
               id="format"
               value={currentConfig.menuBar.format}
               onChange={e => updateMenuBar({ format: e.target.value })}
-              placeholder="$cost $tokens"
+              placeholder={t('menuBar.formatPlaceholder')}
             />
             <p className="text-sm text-muted-foreground">
-              Variables: $cost, $tokens, $input, $output
+              {t('menuBar.formatDescription')}
             </p>
           </div>
 
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="budget">Daily Budget ($)</Label>
+            <Label htmlFor="budget">{t('menuBar.budget')}</Label>
             <Input
               id="budget"
               type="number"
@@ -166,14 +189,14 @@ export function Settings() {
               }}
             />
             <p className="text-sm text-muted-foreground">
-              Used for color coding thresholds
+              {t('menuBar.budgetDescription')}
             </p>
           </div>
 
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="nearBudgetThresholdPercent">Near Budget Threshold (%)</Label>
+            <Label htmlFor="nearBudgetThresholdPercent">{t('menuBar.nearBudgetThreshold')}</Label>
             <Input
               id="nearBudgetThresholdPercent"
               type="number"
@@ -189,7 +212,7 @@ export function Settings() {
               }}
             />
             <p className="text-sm text-muted-foreground">
-              Show orange when remaining budget is below this percentage; show red when exceeded
+              {t('menuBar.nearBudgetThresholdDescription')}
             </p>
           </div>
 
@@ -197,9 +220,9 @@ export function Settings() {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Color Coding</Label>
+              <Label>{t('menuBar.colorCoding')}</Label>
               <p className="text-sm text-muted-foreground">
-                Show usage level with colors
+                {t('menuBar.colorCodingDescription')}
               </p>
             </div>
             <Switch

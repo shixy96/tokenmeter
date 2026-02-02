@@ -1,19 +1,19 @@
-# TokenMeter Architecture Documentation
+# TokenMeter 架构文档
 
-This document provides visual architecture diagrams for the TokenMeter project to help quickly understand the system structure and data flow.
+本文档提供 TokenMeter 项目的可视化架构图，帮助快速理解系统结构和数据流。
 
-## Overall Architecture
+## 整体架构
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        TokenMeter Overall Architecture                       │
+│                           TokenMeter 整体架构                                │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         macOS System Tray                            │   │
+│  │                        macOS 系统托盘                                │   │
 │  │  ┌──────────────┐                                                   │   │
-│  │  │ Tray Icon    │ ← Display real-time usage ($34.02 39.3M)          │   │
-│  │  │ + Menu       │ ← Today/Last 30 Days/Model breakdown              │   │
+│  │  │ Tray Icon    │ ← 显示实时用量 ($34.02 39.3M)                     │   │
+│  │  │ + Menu       │ ← Today/Last 30 Days/模型明细                     │   │
 │  │  └──────────────┘                                                   │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                    │                                        │
@@ -31,7 +31,7 @@ This document provides visual architecture diagrams for the TokenMeter project t
 │  │  │           ▼             │     │            ▼                │   │   │
 │  │  │  ┌───────────────────┐  │     │  ┌───────────────────────┐  │   │   │
 │  │  │  │ TanStack Query    │  │     │  │ services/             │  │   │   │
-│  │  │  │ (Cache + Polling) │  │     │  │   ccusage.rs          │  │   │   │
+│  │  │  │ (缓存 + 轮询)     │  │     │  │   ccusage.rs          │  │   │   │
 │  │  │  └───────────────────┘  │     │  │   pricing.rs          │  │   │   │
 │  │  │                         │     │  │   script_runner.rs    │  │   │   │
 │  │  └─────────────────────────┘     │  └───────────────────────┘  │   │   │
@@ -40,33 +40,33 @@ This document provides visual architecture diagrams for the TokenMeter project t
 │                                    │                                        │
 │                                    ▼                                        │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        External Dependencies                         │   │
+│  │                          外部依赖                                    │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │   │
 │  │  │ ccusage CLI  │  │ models.dev   │  │ curl/wget/http/httpie    │  │   │
-│  │  │ (Usage data) │  │ (Pricing API)│  │ (Provider fetch)         │  │   │
+│  │  │ (用量数据)   │  │ (价格 API)   │  │ (Provider fetch)         │  │   │
 │  │  └──────────────┘  └──────────────┘  └──────────────────────────┘  │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Flow
+## 数据流
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Data Flow Details                                 │
+│                              数据流详解                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ══════════════════════════════════════════════════════════════════════    │
-│  ║                    1. ccusage Usage Data Flow                       ║    │
+│  ║                    1. ccusage 用量数据流                            ║    │
 │  ══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
 │  ┌──────────────┐    shell -l -c     ┌──────────────┐                      │
 │  │ ccusage CLI  │◄───────────────────│ ccusage.rs   │                      │
-│  │ (npm global) │                    │              │                      │
+│  │ (npm 全局)   │                    │              │                      │
 │  └──────┬───────┘                    └──────┬───────┘                      │
 │         │                                   │                              │
-│         │ JSON (daily + totals)             │ Parse + Transform            │
+│         │ JSON (daily + totals)             │ 解析 + 转换                  │
 │         ▼                                   ▼                              │
 │  ┌──────────────────────────────────────────────────────────────────┐     │
 │  │  CcusageResponse { daily: [...], totals: {...} }                 │     │
@@ -78,32 +78,32 @@ This document provides visual architecture diagrams for the TokenMeter project t
 │  │  UsageSummary { today, thisMonth, dailyUsage, modelBreakdown }   │     │
 │  └──────────────────────────────────────────────────────────────────┘     │
 │         │                                                                  │
-│         ├──► AppState.usage (Mutex cache)                                 │
-│         └──► tray.rs (Update menu bar title + menu)                       │
+│         ├──► AppState.usage (Mutex 缓存)                                  │
+│         └──► tray.rs (更新菜单栏标题 + 菜单)                              │
 │                                                                            │
 │  ══════════════════════════════════════════════════════════════════════    │
-│  ║                 2. Custom Provider Data Flow                        ║    │
+│  ║                 2. 自定义 Provider 数据流                           ║    │
 │  ══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
 │  ApiProvider { fetchScript, transformScript, env }                         │
 │         │                                                                  │
-│         │ Security validation (only curl/wget/http/httpie allowed)        │
+│         │ 安全验证 (仅允许 curl/wget/http/httpie)                         │
 │         ▼                                                                  │
 │  ┌──────────────┐    Command::new()   ┌──────────────┐                    │
-│  │ shell_utils  │───────────────────►│ External HTTP│                    │
-│  │ parse_command│    env_clear()      │ Client       │                    │
+│  │ shell_utils  │───────────────────►│ 外部 HTTP    │                    │
+│  │ parse_command│    env_clear()      │ 客户端       │                    │
 │  └──────────────┘                     └──────┬───────┘                    │
-│                                              │ JSON Response               │
+│                                              │ JSON 响应                   │
 │                                              ▼                             │
 │  ┌──────────────────────────────────────────────────────────────────┐     │
-│  │  script_runner.rs (boa_engine JS sandbox, 5s timeout, 10KB limit)│     │
+│  │  script_runner.rs (boa_engine JS 沙箱, 5秒超时, 10KB限制)        │     │
 │  └──────────────────────────────────────────────────────────────────┘     │
 │         │                                                                  │
 │         ▼                                                                  │
 │  ProviderUsageResult { cost?, tokens?, used?, total? }                    │
 │                                                                            │
 │  ══════════════════════════════════════════════════════════════════════    │
-│  ║                    3. Frontend-Backend Communication                ║    │
+│  ║                    3. 前后端通信                                    ║    │
 │  ══════════════════════════════════════════════════════════════════════    │
 │                                                                             │
 │   Frontend (React)                         Backend (Rust)                  │
@@ -118,19 +118,19 @@ This document provides visual architecture diagrams for the TokenMeter project t
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Backend Module Dependencies
+## 后端模块依赖
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                      Backend Module Dependencies                             │
+│                          后端模块依赖关系                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  main.rs ──► lib.rs                                                        │
 │                 │                                                           │
-│                 ├── Register Tauri commands                                │
-│                 ├── Initialize AppState                                    │
-│                 ├── Set up system tray                                     │
-│                 └── Start background preload task                          │
+│                 ├── 注册 Tauri 命令                                        │
+│                 ├── 初始化 AppState                                        │
+│                 ├── 设置系统托盘                                           │
+│                 └── 启动后台预加载任务                                     │
 │                 │                                                           │
 │      ┌──────────┼──────────┬──────────────┬──────────────┐                 │
 │      │          │          │              │              │                 │
@@ -144,17 +144,17 @@ This document provides visual architecture diagrams for the TokenMeter project t
 │      └──────────────────────┴────────────┘                                 │
 │                             │                                              │
 │                             ▼                                              │
-│                    Shared Type Modules                                     │
+│                    共享类型模块                                            │
 │                    (config/types/error)                                    │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Frontend Module Structure
+## 前端模块结构
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Frontend Module Structure                             │
+│                          前端模块结构                                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  main.tsx ──► QueryClientProvider                                          │
@@ -200,7 +200,7 @@ This document provides visual architecture diagrams for the TokenMeter project t
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                          i18n/                                       │   │
-│  │  index.ts (i18next init) │ locales/{en,zh}/*.json (translation files)│   │
+│  │  index.ts (i18next 初始化) │ locales/{en,zh}/*.json (翻译文件)      │   │
 │  │                    (i18next + react-i18next)                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -212,27 +212,27 @@ This document provides visual architecture diagrams for the TokenMeter project t
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Configuration Storage Structure
+## 配置存储结构
 
 ```
 ~/.tokenmeter/
-├── config.json              # Application config
-│   ├── refreshInterval      # Refresh interval (seconds)
-│   ├── launchAtLogin        # Launch at login
-│   ├── language             # Language preference ("en"/"zh", optional, defaults to system)
-│   └── menuBar              # Menu bar config
-│       ├── format           # Display format (${cost} ${tokens})
-│       ├── fixedBudget      # Daily budget
-│       └── showColorCoding  # Color coding
+├── config.json              # 应用配置
+│   ├── refreshInterval      # 刷新间隔 (秒)
+│   ├── launchAtLogin        # 开机启动
+│   ├── language             # 语言偏好 ("en"/"zh", 可选，默认跟随系统)
+│   └── menuBar              # 菜单栏配置
+│       ├── format           # 显示格式 (${cost} ${tokens})
+│       ├── fixedBudget      # 每日预算
+│       └── showColorCoding  # 颜色编码
 │
-└── providers/               # Custom Provider configs
+└── providers/               # 自定义 Provider 配置
     └── {id}.json
         ├── id               # Provider ID
-        ├── name             # Display name
-        ├── enabled          # Whether enabled
-        ├── fetchScript      # Data fetch script
-        ├── transformScript  # JS transform script
-        └── env              # Environment variables
+        ├── name             # 显示名称
+        ├── enabled          # 是否启用
+        ├── fetchScript      # 数据抓取脚本
+        ├── transformScript  # JS 转换脚本
+        └── env              # 环境变量
 ```
 
-Theme preference is stored in `localStorage` (key: `tokenmeter-theme`), synchronized across windows via `storage` events.
+主题偏好存储在 `localStorage`（key: `tokenmeter-theme`），多窗口通过 `storage` 事件同步。

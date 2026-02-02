@@ -2,104 +2,121 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this repository.
 
-## 与 AGENTS.md 同步
+## Sync with AGENTS.md
 
-- 本仓库的 agent 运行规范以 `AGENTS.md` 为准；本文件主要作为 Claude Code 入口与架构/数据流说明
-- 若 `CLAUDE.md` 与 `AGENTS.md` 有冲突，以 `AGENTS.md` 为准
-- 更新命令、质量门槛或安全边界时，请同步更新 `AGENTS.md`
+- Agent execution guidelines follow `AGENTS.md`; this file serves as Claude Code entry point and architecture/data flow documentation
+- If `CLAUDE.md` conflicts with `AGENTS.md`, `AGENTS.md` takes precedence
+- When updating commands, quality gates, or security boundaries, please sync `AGENTS.md`
 
-## 项目概述
+## Project Overview
 
-TokenMeter 是一个 Tauri 2 + React 桌面应用，用于实时显示 API 用量统计。核心功能通过 Rust 后端实现数据抓取和脚本执行，React 前端负责 UI 展示。
+TokenMeter is a Tauri 2 + React desktop application for real-time API usage statistics display. Core functionality is implemented through Rust backend for data fetching and script execution, with React frontend handling UI rendering.
 
-## 开发命令
+## Development Commands
 
 ```bash
-# 前后端同时启动开发模式
+# Start development mode (frontend + backend together)
 npm run tauri dev
 
-# 前端 lint
+# Frontend lint
 npm run lint
 npm run lint:fix
 
-# Rust 格式检查（在 src-tauri/ 目录运行）
+# Rust format check (run in src-tauri/ directory)
 cargo fmt --check
 
-# Rust clippy 检查
+# Rust clippy check
 cargo clippy
 
-# Rust 单元测试
+# Rust unit tests
 cargo test
 
-# 验证脚本（在 src-tauri/ 目录运行）
-cargo run --example test_ccusage           # 验证 ccusage 数据抓取
-cargo run --example test_provider -- <name> # 验证指定 provider
-cargo run --example test_config            # 验证配置加载
+# Validation scripts (run in src-tauri/ directory)
+cargo run --example test_ccusage           # Validate ccusage data fetching
+cargo run --example test_provider -- <name> # Validate specified provider
+cargo run --example test_config            # Validate config loading
 ```
 
-## 代码架构
+## Code Architecture
 
-> 完整的 ASCII 架构图请参阅 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> For complete ASCII architecture diagrams, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-### 前端 (React)
+### Frontend (React)
 
 ```
 src/
-├── main.tsx                   # React 渲染入口，配置 TanStack Query
-├── App.tsx                    # 主应用，使用 Tabs 实现导航
+├── main.tsx                   # React entry point, configures TanStack Query + i18n
+├── App.tsx                    # Main app, uses Tabs for navigation
 ├── components/
-│   ├── Dashboard.tsx          # 用量仪表板（图表、统计）
-│   ├── ProviderEditor.tsx     # Provider 编辑器（增删改测）
-│   ├── Settings.tsx           # 应用设置（刷新间隔、菜单栏格式等）
-│   └── ui/                    # shadcn/ui 基础组件库
+│   ├── Dashboard.tsx          # Usage dashboard (charts, statistics)
+│   ├── ProviderEditor.tsx     # Provider editor (CRUD + test)
+│   ├── Settings.tsx           # App settings (refresh interval, menu bar format, language, etc.)
+│   └── ui/                    # shadcn/ui base component library
 ├── hooks/
-│   ├── useProviders.ts        # Provider 管理 hooks
-│   └── useUsageData.ts        # 用量数据 hooks（含自动轮询）
+│   ├── useProviders.ts        # Provider management hooks
+│   ├── useUsageData.ts        # Usage data hooks (with auto-polling)
+│   └── useLanguage.ts         # Language switch hook (read/save language preference)
+├── i18n/
+│   ├── index.ts               # i18next initialization config
+│   └── locales/               # Translation files
+│       ├── en/                # English translations
+│       │   ├── common.json
+│       │   ├── dashboard.json
+│       │   ├── providers.json
+│       │   ├── settings.json
+│       │   └── tray.json
+│       └── zh/                # Chinese translations
+│           ├── common.json
+│           ├── dashboard.json
+│           ├── providers.json
+│           ├── settings.json
+│           └── tray.json
 ├── lib/
-│   ├── api.ts                 # Rust 后端 API 封装（invoke 调用）
-│   └── utils.ts               # 工具函数（类名合并、格式化）
+│   ├── api.ts                 # Rust backend API wrapper (invoke calls)
+│   └── utils.ts               # Utility functions (class name merging, formatting)
 └── types/
-    └── index.ts               # TypeScript 类型定义
+    └── index.ts               # TypeScript type definitions
 ```
 
-**前端特点：**
-- 使用 `TanStack Query` 管理数据缓存和自动轮询
-- 页面导航采用 `Tabs` 受控组件模式（非 React Router）
-- 通过 `listen()` 监听 Rust 后端发送的 `navigate` 事件
+**Frontend Features:**
+- Uses `TanStack Query` for data caching and auto-polling
+- Page navigation uses controlled `Tabs` component pattern (not React Router)
+- Listens to `navigate` events sent from Rust backend via `listen()`
+- Uses `i18next` + `react-i18next` for multi-language support (Chinese/English)
 
-### 后端 (Rust)
+### Backend (Rust)
 
 ```
 src-tauri/src/
-├── main.rs              # 程序入口，调用 lib::run()
-├── lib.rs               # 命令注册、应用初始化、托盘设置
+├── main.rs              # Program entry, calls lib::run()
+├── lib.rs               # Command registration, app initialization, tray setup
 ├── commands/
-│   ├── mod.rs           # 模块导出
-│   ├── usage.rs         # 用量相关命令（get/refresh）
-│   └── providers.rs     # Provider 管理命令（含安全验证）
+│   ├── mod.rs           # Module exports
+│   ├── usage.rs         # Usage-related commands (get/refresh)
+│   └── providers.rs     # Provider management commands (with security validation)
 ├── services/
-│   ├── mod.rs           # 模块导出
-│   ├── ccusage.rs       # ccusage CLI 集成（调用外部命令）
-│   ├── pricing.rs       # 模型价格获取（HTTP API + 模糊匹配）
-│   └── script_runner.rs # JS 脚本执行（boa_engine 引擎）
-├── state.rs             # 全局状态（AppState）
-├── config.rs            # 配置结构定义
-├── types.rs             # 类型定义
-├── error.rs             # 错误类型（可序列化）
-└── tray.rs              # 系统托盘逻辑（菜单、标题更新）
+│   ├── mod.rs           # Module exports
+│   ├── ccusage.rs       # ccusage CLI integration (external command calls)
+│   ├── pricing.rs       # Model pricing fetching (HTTP API + fuzzy matching)
+│   └── script_runner.rs # JS script execution (boa_engine)
+├── state.rs             # Global state (AppState)
+├── config.rs            # Config structure definitions
+├── types.rs             # Type definitions
+├── error.rs             # Error types (serializable)
+└── tray.rs              # System tray logic (menu, title updates)
 ```
 
-### 前后端通信
+### Frontend-Backend Communication
 
-| 模式 | 前端 | 后端 |
-|------|------|------|
-| 请求/响应 | `invoke('command_name', args)` | `#[tauri::command]` |
-| 事件推送 | `listen('event', callback)` | `window.emit('event', data)` |
+| Pattern | Frontend | Backend |
+|---------|----------|---------|
+| Request/Response | `invoke('command_name', args)` | `#[tauri::command]` |
+| Event Push | `listen('event', callback)` | `window.emit('event', data)` |
 
-### API 对应关系
+### API Mapping
 
-| 前端 API (`src/lib/api.ts`) | Rust 命令 | 文件位置 |
-|-----------------------------|-----------|----------|
+| Frontend API (`src/lib/api.ts`) | Rust Command | File Location |
+|---------------------------------|--------------|---------------|
 | `getUsageSummary()` | `get_usage_summary` | `commands/usage.rs` |
 | `refreshUsage()` | `refresh_usage` | `commands/usage.rs` |
 | `getConfig()` / `saveConfig()` | `get_config` / `save_config` | `commands/usage.rs` |
@@ -107,61 +124,64 @@ src-tauri/src/
 | `deleteProvider()` / `testProvider()` | `delete_provider` / `test_provider` | `commands/providers.rs` |
 | `openDashboard()` / `openSettings()` | `open_dashboard` / `open_settings` | `lib.rs` |
 
-### 数据流
+### Data Flow
 
-1. **ccusage 服务** (`services/ccusage.rs`): 调用外部 `ccusage` CLI 获取用量
-2. **自定义 Provider** (`services/script_runner.rs`):
-   - `fetch_script`: 调用外部命令（curl/wget/http/httpie）获取数据
-   - `transform_script`: 通过 `boa_engine` JS 引擎执行转换脚本
-3. **状态管理** (`state.rs`): `AppState` 单例管理配置和用量缓存
-4. **价格回退** (`services/pricing.rs`): 从 models.dev API 获取模型价格
+1. **ccusage Service** (`services/ccusage.rs`): Calls external `ccusage` CLI to get usage data
+2. **Custom Provider** (`services/script_runner.rs`):
+   - `fetch_script`: Calls external commands (curl/wget/http/httpie) to fetch data
+   - `transform_script`: Executes transform scripts via `boa_engine` JS engine
+3. **State Management** (`state.rs`): `AppState` singleton manages config and usage cache
+4. **Price Fallback** (`services/pricing.rs`): Fetches model prices from models.dev API
 
-### 类型同步
+### Type Synchronization
 
-- Rust 类型: `src-tauri/src/types.rs`（`#[serde(rename_all = "camelCase")]`
-- TypeScript 类型: `src/types/index.ts`
-- 字段命名: Rust 用 snake_case，TS 用 camelCase
+- Rust types: `src-tauri/src/types.rs` (`#[serde(rename_all = "camelCase")]`)
+- Rust config: `src-tauri/src/config.rs` (`AppConfig` struct, includes `language` field)
+- TypeScript types: `src/types/index.ts`
+- Field naming: Rust uses snake_case, TS uses camelCase
 
-## 配置存储
+## Configuration Storage
 
-| 路径 | 内容 |
-|------|------|
-| `~/.tokenmeter/config.json` | 应用配置（刷新间隔、菜单栏格式、预算阈值） |
-| `~/.tokenmeter/providers/{id}.json` | 自定义 Provider 配置 |
-
-## 测试
-
-### 单元测试 (46 个测试用例)
-
-| 模块 | 测试内容 |
+| Path | Contents |
 |------|----------|
-| `ccusage.rs` | JSON 解析、cache tokens、多天/多模型 |
-| `config.rs` | 序列化/反序列化、默认值 |
-| `pricing.rs` | 价格计算（精确/模糊匹配） |
-| `script_runner.rs` | JS 执行、数组处理、错误处理 |
-| `providers.rs` | 安全验证（路径遍历、命令注入、环境变量注入） |
+| `~/.tokenmeter/config.json` | App config (refresh interval, menu bar format, budget threshold, language preference) |
+| `~/.tokenmeter/providers/{id}.json` | Custom Provider configs |
 
-### 验证命令
+**AppConfig.language field:** Stores user language preference (`"en"` / `"zh"`), defaults to `None` (follows browser/system language).
+
+## Testing
+
+### Unit Tests (46 test cases)
+
+| Module | Test Coverage |
+|--------|---------------|
+| `ccusage.rs` | JSON parsing, cache tokens, multi-day/multi-model |
+| `config.rs` | Serialization/deserialization, defaults |
+| `pricing.rs` | Price calculation (exact/fuzzy matching) |
+| `script_runner.rs` | JS execution, array handling, error handling |
+| `providers.rs` | Security validation (path traversal, command injection, env variable injection) |
+
+### Validation Commands
 
 ```bash
-cargo test                    # 运行所有测试
-cargo run --example test_ccusage      # 验证 ccusage 数据抓取
-cargo run --example test_provider -- <name>  # 验证 provider 脚本
-cargo run --example test_config       # 验证配置加载
+cargo test                    # Run all tests
+cargo run --example test_ccusage      # Validate ccusage data fetching
+cargo run --example test_provider -- <name>  # Validate provider script
+cargo run --example test_config       # Validate config loading
 ```
 
-## 质量检查
+## Quality Checks
 
-修改代码后必须运行以下检查：
+After modifying code, must run these checks:
 
-1. **前端**: `npm run lint`
+1. **Frontend**: `npm run lint`
 2. **Rust**: `cargo fmt --check && cargo clippy && cargo test`
-3. **核心功能变更**: 运行对应 example 验证
+3. **Core functionality changes**: Run corresponding example validation
 
-## 代码规范
+## Code Standards
 
-- TypeScript 严格模式，函数式组件 + Hooks
-- UI 组件基于 shadcn/ui（`src/components/ui/`）
-- Rust 遵循 Clippy pedantic + nursery 规范
-- 禁止 TODO、占位符或未完成代码
-- Provider 安全验证：仅允许 curl/wget/http/httpie，禁止命令注入
+- TypeScript strict mode, functional components + Hooks
+- UI components based on shadcn/ui (`src/components/ui/`)
+- Rust follows Clippy pedantic + nursery rules
+- No TODOs, placeholders, or incomplete code
+- Provider security validation: only allow curl/wget/http/httpie, forbid command injection

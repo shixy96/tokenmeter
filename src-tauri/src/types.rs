@@ -55,7 +55,7 @@ pub struct UsageSummary {
     pub model_breakdown: Vec<ModelUsage>,
 }
 
-/// 托盘菜单显示用的 Provider 统计
+/// Provider statistics for tray menu display
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderTrayStats {
@@ -77,7 +77,7 @@ impl ProviderTrayStats {
     }
 }
 
-/// Provider 脚本执行结果
+/// Provider script execution result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderUsageResult {
@@ -91,7 +91,7 @@ impl ProviderUsageResult {
     #[must_use]
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn format_display(&self, name: &str) -> String {
-        // 如果有 used/total，显示进度条
+        // If used/total are available, display progress bar
         if let (Some(used), Some(total)) = (self.used, self.total) {
             let percent = if total > 0.0 {
                 (used / total * 100.0).round() as u32
@@ -109,7 +109,7 @@ impl ProviderUsageResult {
             );
         }
 
-        // 否则显示 cost/tokens
+        // Otherwise display cost/tokens
         let mut parts = vec![format!("🔋 {name}:")];
         if let Some(cost) = self.cost {
             parts.push(format!("${cost:.2}"));
@@ -124,7 +124,7 @@ impl ProviderUsageResult {
     }
 }
 
-/// 格式化数字为 K/M/B 后缀
+/// Format numbers with K/M/B suffix
 #[must_use]
 #[allow(clippy::cast_precision_loss)]
 pub fn format_number(num: u64) -> String {
@@ -139,7 +139,7 @@ pub fn format_number(num: u64) -> String {
     }
 }
 
-/// 生成 ASCII 进度条
+/// Generate ASCII progress bar
 #[allow(
     clippy::cast_precision_loss,
     clippy::cast_possible_truncation,

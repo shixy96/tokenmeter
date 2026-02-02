@@ -34,6 +34,8 @@ pub struct AppConfig {
     pub refresh_interval: u64,
     pub launch_at_login: bool,
     pub menu_bar: MenuBarConfig,
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -42,6 +44,7 @@ impl Default for AppConfig {
             refresh_interval: 900,
             launch_at_login: false,
             menu_bar: MenuBarConfig::default(),
+            language: None,
         }
     }
 }
@@ -70,6 +73,7 @@ mod tests {
         assert!(!config.launch_at_login);
         assert_eq!(config.menu_bar.fixed_budget, 15.0);
         assert_eq!(config.menu_bar.near_budget_threshold_percent, 10.0);
+        assert!(config.language.is_none());
     }
 
     #[test]
@@ -92,6 +96,26 @@ mod tests {
         assert_eq!(config.menu_bar.fixed_budget, 20.0);
         assert_eq!(config.menu_bar.near_budget_threshold_percent, 10.0);
         assert!(!config.menu_bar.show_color_coding);
+        assert!(config.language.is_none());
+    }
+
+    #[test]
+    fn test_app_config_deserialize_with_language() {
+        let json = r#"{
+            "refreshInterval": 600,
+            "launchAtLogin": false,
+            "menuBar": {
+                "format": "${cost}",
+                "thresholdMode": "fixed",
+                "fixedBudget": 15.0,
+                "showColorCoding": true
+            },
+            "language": "zh"
+        }"#;
+
+        let config: AppConfig =
+            serde_json::from_str(json).expect("test JSON should parse correctly");
+        assert_eq!(config.language, Some("zh".to_string()));
     }
 
     #[test]

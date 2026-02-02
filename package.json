@@ -1,8 +1,40 @@
 {
-  "name": "tokenmeter",
-  "private": true,
+  "name": "token-meter",
   "version": "0.1.0",
+  "description": "macOS menu bar app for tracking API usage and costs, including Claude.",
+  "license": "MIT",
+  "author": "shixy",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shixy96/token-meter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shixy96/token-meter/issues"
+  },
+  "homepage": "https://github.com/shixy96/token-meter#readme",
+  "keywords": [
+    "tauri",
+    "macos",
+    "menubar",
+    "tray",
+    "usage",
+    "api",
+    "claude",
+    "ccusage",
+    "react",
+    "typescript",
+    "vite",
+    "rust"
+  ],
+  "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin"
+  ],
+  "packageManager": "npm@9.8.1",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -25,9 +57,12 @@
     "@tauri-apps/plugin-opener": "^2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "i18next": "^25.8.0",
+    "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.563.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^16.5.4",
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0"
   },

@@ -5,14 +5,17 @@ use crate::state::AppState;
 use crate::tray;
 use crate::types::UsageSummary;
 use std::time::Duration;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 const MIN_REFRESH_INTERVAL: u64 = 60;
 const MAX_REFRESH_INTERVAL: u64 = 3600;
 
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
-pub async fn get_usage_summary(state: State<'_, AppState>) -> Result<UsageSummary, AppError> {
+pub async fn get_usage_summary(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<UsageSummary, AppError> {
     let refresh_interval = state
         .config
         .lock()
@@ -47,6 +50,8 @@ pub async fn get_usage_summary(state: State<'_, AppState>) -> Result<UsageSummar
 
     *state.usage.lock().await = Some(data.clone());
     *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
+    let config = state.config.lock().await.clone();
+    tray::update_tray_menu(&app, &data, &config, &[]);
 
     Ok(data)
 }
@@ -111,6 +116,7 @@ pub async fn save_config(
     if let Some(usage) = state.usage.lock().await.as_ref() {
         tray::update_tray_menu(&app, usage, &config, &[]);
     }
+    let _ = app.emit("config-updated", &config);
 
     Ok(())
 }

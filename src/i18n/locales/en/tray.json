@@ -1,0 +1,27 @@
+{
+  "loading": "Loading...",
+  "noUsageData": "No usage data",
+  "tokens": "Tokens",
+  "tabs": {
+    "today": "Today",
+    "days7": "7 Days",
+    "days30": "30 Days"
+  },
+  "chart": {
+    "dailyCost": "Daily Cost"
+  },
+  "summary": {
+    "activeDays": "{{count}} Active Days Summary",
+    "totalCost": "Total Cost",
+    "totalTokens": "Total Tokens",
+    "dailyAvg": "Daily Avg"
+  },
+  "models": {
+    "topModels": "Top Models"
+  },
+  "actions": {
+    "dashboard": "Dashboard",
+    "refresh": "Refresh",
+    "quit": "Quit"
+  }
+}

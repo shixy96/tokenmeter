@@ -53,6 +53,7 @@ export interface AppConfig {
   refreshInterval: number
   launchAtLogin: boolean
   menuBar: MenuBarConfig
+  language?: string
 }
 
 export type UsageLevel = 'low' | 'medium' | 'high' | 'critical'

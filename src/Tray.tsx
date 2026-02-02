@@ -9,8 +9,10 @@ import {
   Settings,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DailyBarChart } from '@/components/DailyBarChart'
 import { ModelIcon } from '@/components/icons/ModelIcon'
+import { useConfigEvents } from '@/hooks/useConfigEvents'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
 import { cn } from '@/lib/utils'
@@ -52,18 +54,27 @@ export function Tray() {
   const lastUsageRef = useRef<UsageSummary | null>(null)
   const queryClient = useQueryClient()
   useTheme()
+  useConfigEvents()
   const { data: usage, isLoading, isFetching } = useUsageData()
   const refreshMutation = useRefreshUsage()
+  const { t } = useTranslation('tray')
 
   const isRefreshing = refreshMutation.isPending || isFetching
 
   // Listen for usage-updated events from backend to sync data
   useEffect(() => {
-    const unlisten = listen<UsageSummary>('usage-updated', (event) => {
-      queryClient.setQueryData(['usage'], event.payload)
-    })
+    let unlisten: (() => void) | undefined
+
+    async function setupListener() {
+      unlisten = await listen<UsageSummary>('usage-updated', (event) => {
+        queryClient.setQueryData(['usage'], event.payload)
+      })
+    }
+
+    setupListener().catch(() => {})
+
     return () => {
-      unlisten.then(fn => fn())
+      unlisten?.()
     }
   }, [queryClient])
 
@@ -92,7 +103,7 @@ export function Tray() {
   if (isLoading && !displayUsage) {
     return (
       <div className="flex items-center justify-center h-screen bg-background text-muted-foreground">
-        Loading...
+        {t('loading')}
       </div>
     )
   }
@@ -100,7 +111,7 @@ export function Tray() {
   if (!displayUsage) {
     return (
       <div className="flex items-center justify-center h-screen bg-background text-muted-foreground">
-        No usage data
+        {t('noUsageData')}
       </div>
     )
   }
@@ -183,7 +194,7 @@ export function Tray() {
         <div className="mt-1.5 text-xs text-muted-foreground">
           {formatTokens(displayUsage.today.totalTokens)}
           {' '}
-          Tokens
+          {t('tokens')}
         </div>
       </div>
 
@@ -197,7 +208,7 @@ export function Tray() {
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          Today
+          {t('tabs.today')}
         </button>
         <button
           onClick={() => setActiveTab('7days')}
@@ -208,7 +219,7 @@ export function Tray() {
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          7 Days
+          {t('tabs.days7')}
         </button>
         <button
           onClick={() => setActiveTab('30days')}
@@ -219,14 +230,14 @@ export function Tray() {
               : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          30 Days
+          {t('tabs.days30')}
         </button>
       </div>
 
       <div className="flex-1 px-5 py-4 space-y-3 overflow-y-auto">
         {activeTab === '7days' && dailyChartData.length > 0 && (
           <div className="glass-card p-3">
-            <div className="text-xs font-medium text-muted-foreground mb-2">Daily Cost</div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">{t('chart.dailyCost')}</div>
             <DailyBarChart data={dailyChartData} />
           </div>
         )}
@@ -234,22 +245,20 @@ export function Tray() {
         {activeTab === '30days' && (
           <div className="glass-card p-3">
             <div className="text-xs font-medium text-muted-foreground mb-2">
-              {last30Days.length}
-              {' '}
-              Active Days Summary
+              {t('summary.activeDays', { count: last30Days.length })}
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <div className="text-lg font-semibold">{formatCost(totalCost30Days)}</div>
-                <div className="text-[10px] text-muted-foreground">Total Cost</div>
+                <div className="text-[10px] text-muted-foreground">{t('summary.totalCost')}</div>
               </div>
               <div>
                 <div className="text-lg font-semibold">{formatTokens(totalTokens30Days)}</div>
-                <div className="text-[10px] text-muted-foreground">Total Tokens</div>
+                <div className="text-[10px] text-muted-foreground">{t('summary.totalTokens')}</div>
               </div>
               <div>
                 <div className="text-lg font-semibold">{formatCost(dailyAvg30Days)}</div>
-                <div className="text-[10px] text-muted-foreground">Daily Avg</div>
+                <div className="text-[10px] text-muted-foreground">{t('summary.dailyAvg')}</div>
               </div>
             </div>
           </div>
@@ -257,7 +266,7 @@ export function Tray() {
 
         {activeModels.length > 0 && (
           <div className="text-xs font-medium text-muted-foreground">
-            Top Models
+            {t('models.topModels')}
           </div>
         )}
 
@@ -292,7 +301,7 @@ export function Tray() {
 
         {activeModels.length === 0 && (
           <div className="py-4 text-center text-muted-foreground">
-            No usage data
+            {t('noUsageData')}
           </div>
         )}
       </div>
@@ -303,7 +312,7 @@ export function Tray() {
           className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors cursor-pointer outline-none hover:bg-accent/50"
         >
           <LayoutDashboard className="w-4 h-4" />
-          Dashboard
+          {t('actions.dashboard')}
         </button>
         <button
           onClick={handleRefresh}
@@ -314,14 +323,14 @@ export function Tray() {
           disabled={isRefreshing}
         >
           <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-          Refresh
+          {t('actions.refresh')}
         </button>
         <button
           onClick={handleQuit}
           className="flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors cursor-pointer outline-none hover:bg-accent/50 hover:text-destructive"
         >
           <Power className="w-4 h-4" />
-          Quit
+          {t('actions.quit')}
         </button>
       </div>
     </div>

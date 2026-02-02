@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "仪表板",
+    "providers": "数据源",
+    "settings": "设置"
+  },
+  "loading": "加载中...",
+  "noData": "暂无数据",
+  "save": "保存",
+  "saving": "保存中...",
+  "cancel": "取消",
+  "delete": "删除",
+  "test": "测试",
+  "retry": "重试",
+  "error": "错误",
+  "success": "成功"
+}

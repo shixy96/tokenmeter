@@ -1,0 +1,36 @@
+{
+  "title": "API 数据源",
+  "addProvider": "添加数据源",
+  "loading": "正在加载数据源...",
+  "noProviders": "暂无配置的数据源",
+  "list": {
+    "title": "数据源列表"
+  },
+  "editor": {
+    "newProvider": "新建数据源",
+    "editProvider": "编辑数据源",
+    "name": "名称",
+    "enabled": "启用",
+    "fetchScript": "获取脚本 (curl 命令)",
+    "fetchScriptPlaceholder": "curl -s -H 'Authorization: Bearer ${TOKEN}' https://api.example.com/usage",
+    "fetchScriptHint": "使用 ${VAR} 语法引用下方定义的环境变量。",
+    "transformScript": "转换脚本 (JavaScript)",
+    "transformScriptPlaceholder": "(response) => ({ cost: response.total_cost, tokens: response.total_tokens })",
+    "envVariables": "环境变量",
+    "envKeyPlaceholder": "变量名",
+    "envValuePlaceholder": "变量值",
+    "envTempKeyWarning": "请为高亮的环境变量输入名称",
+    "addVariable": "添加变量"
+  },
+  "actions": {
+    "save": "保存",
+    "saving": "保存中...",
+    "test": "测试",
+    "testing": "测试中...",
+    "delete": "删除"
+  },
+  "testResult": {
+    "passed": "测试通过",
+    "failed": "测试失败"
+  }
+}

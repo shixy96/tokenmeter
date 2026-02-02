@@ -1,0 +1,39 @@
+{
+  "title": "Usage Statistics",
+  "subtitle": "View API usage and cost breakdown",
+  "loading": {
+    "title": "Loading usage data...",
+    "description": "This may take up to 30 seconds on first load"
+  },
+  "error": {
+    "loadFailed": "Failed to load usage data",
+    "ccusageNotInstalled": "ccusage not installed",
+    "ccusageDescription": "TokenMeter requires ccusage to fetch Claude usage data. Please install it first:",
+    "retryAfterInstalling": "Retry after installing"
+  },
+  "timeRange": {
+    "days7": "7 Days",
+    "days30": "30 Days"
+  },
+  "stats": {
+    "costOverview": "Cost Overview",
+    "tokenOverview": "Token Overview",
+    "lastNDays": "Last {{days}} days total cost",
+    "totalTokens": "Total Tokens",
+    "totalInput": "Total Input",
+    "totalOutput": "Total Output",
+    "cacheRead": "Cache Read",
+    "cacheWrite": "Cache Write"
+  },
+  "chart": {
+    "usageTrend": "Usage Trend",
+    "usageTrendSubtitle": "Tokens (bar) vs Cost (line)",
+    "modelDistribution": "Model Distribution",
+    "modelCount": "{{count}} models",
+    "otherModels": "+{{count}} other models",
+    "noModelData": "No model data available",
+    "date": "Date",
+    "tokens": "Tokens",
+    "cost": "Cost"
+  }
+}

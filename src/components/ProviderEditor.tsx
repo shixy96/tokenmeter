@@ -2,6 +2,7 @@ import type { TestProviderResult } from '@/lib/api'
 import type { ApiProvider } from '@/types'
 import { Check, Play, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,6 +25,7 @@ interface EnvEditorProps {
 }
 
 function EnvEditor({ env, onChange }: EnvEditorProps) {
+  const { t } = useTranslation('providers')
   const [tempKeys, setTempKeys] = useState<Set<string>>(() => new Set())
   const entries = Object.entries(env)
 
@@ -76,14 +78,14 @@ function EnvEditor({ env, onChange }: EnvEditorProps) {
         return (
           <div key={key || `empty-${index}`} className="flex gap-2 items-center">
             <Input
-              placeholder="KEY"
+              placeholder={t('editor.envKeyPlaceholder')}
               value={isTempKey ? '' : key}
               onChange={e => handleKeyChange(key, e.target.value)}
               className={`font-mono text-sm flex-1 ${isTempKey ? 'border-yellow-500' : ''}`}
             />
             <span className="text-muted-foreground">=</span>
             <Input
-              placeholder="value"
+              placeholder={t('editor.envValuePlaceholder')}
               value={value}
               onChange={e => handleValueChange(key, e.target.value)}
               className="font-mono text-sm flex-1"
@@ -101,12 +103,12 @@ function EnvEditor({ env, onChange }: EnvEditorProps) {
       })}
       {hasTempKeys && (
         <p className="text-xs text-yellow-600">
-          Please enter a name for the highlighted environment variable(s)
+          {t('editor.envTempKeyWarning')}
         </p>
       )}
       <Button variant="outline" size="sm" onClick={handleAdd}>
         <Plus className="w-4 h-4 mr-1" />
-        Add Variable
+        {t('editor.addVariable')}
       </Button>
     </div>
   )
@@ -126,6 +128,7 @@ export function ProviderEditor() {
   const saveMutation = useSaveProvider()
   const deleteMutation = useDeleteProvider()
   const testMutation = useTestProvider()
+  const { t } = useTranslation('providers')
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingProvider, setEditingProvider] = useState<ApiProvider | null>(null)
@@ -192,23 +195,23 @@ export function ProviderEditor() {
   }
 
   if (isLoading) {
-    return <div className="p-6">Loading providers...</div>
+    return <div className="p-6">{t('loading')}</div>
   }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">API Providers</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <Button onClick={handleNew}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Provider
+          {t('addProvider')}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[250px_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Providers</CardTitle>
+            <CardTitle className="text-sm">{t('list.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {providers.map(provider => (
@@ -231,7 +234,7 @@ export function ProviderEditor() {
             ))}
             {providers.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No providers configured
+                {t('noProviders')}
               </p>
             )}
           </CardContent>
@@ -241,13 +244,13 @@ export function ProviderEditor() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {selectedId ? 'Edit Provider' : 'New Provider'}
+                {selectedId ? t('editor.editProvider') : t('editor.newProvider')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t('editor.name')}</Label>
                   <Input
                     id="name"
                     value={editingProvider.name}
@@ -255,7 +258,7 @@ export function ProviderEditor() {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>Enabled</Label>
+                  <Label>{t('editor.enabled')}</Label>
                   <Switch
                     checked={editingProvider.enabled}
                     onCheckedChange={checked =>
@@ -267,38 +270,37 @@ export function ProviderEditor() {
               <Separator />
 
               <div className="space-y-2">
-                <Label htmlFor="fetchScript">Fetch Script (curl command)</Label>
+                <Label htmlFor="fetchScript">{t('editor.fetchScript')}</Label>
                 <Textarea
                   id="fetchScript"
                   value={editingProvider.fetchScript}
                   onChange={e => updateProvider({ fetchScript: e.target.value })}
-                  // eslint-disable-next-line no-template-curly-in-string
-                  placeholder="curl -s -H 'Authorization: Bearer ${TOKEN}' https://api.example.com/usage"
+                  placeholder={t('editor.fetchScriptPlaceholder')}
                   className="font-mono text-sm"
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use $&#123;VAR&#125; syntax to reference environment variables defined below.
+                  {t('editor.fetchScriptHint')}
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="transformScript">
-                  Transform Script (JavaScript)
+                  {t('editor.transformScript')}
                 </Label>
                 <Textarea
                   id="transformScript"
                   value={editingProvider.transformScript}
                   onChange={e =>
                     updateProvider({ transformScript: e.target.value })}
-                  placeholder="(response) => ({ cost: response.total_cost, tokens: response.total_tokens })"
+                  placeholder={t('editor.transformScriptPlaceholder')}
                   className="font-mono text-sm"
                   rows={4}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Environment Variables</Label>
+                <Label>{t('editor.envVariables')}</Label>
                 <EnvEditor
                   env={editingProvider.env}
                   onChange={env => updateProvider({ env })}
@@ -309,7 +311,7 @@ export function ProviderEditor() {
 
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? 'Saving...' : 'Save'}
+                  {saveMutation.isPending ? t('actions.saving') : t('actions.save')}
                 </Button>
                 <Button
                   variant="outline"
@@ -317,7 +319,7 @@ export function ProviderEditor() {
                   disabled={testMutation.isPending}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  {testMutation.isPending ? 'Testing...' : 'Test'}
+                  {testMutation.isPending ? t('actions.testing') : t('actions.test')}
                 </Button>
                 {selectedId && (
                   <Button
@@ -326,7 +328,7 @@ export function ProviderEditor() {
                     disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    {t('actions.delete')}
                   </Button>
                 )}
               </div>
@@ -344,7 +346,7 @@ export function ProviderEditor() {
                       testResult.success ? 'text-green-700' : 'text-red-700'
                     }`}
                   >
-                    {testResult.success ? 'Test Passed' : 'Test Failed'}
+                    {testResult.success ? t('testResult.passed') : t('testResult.failed')}
                   </p>
                   {testResult.error && (
                     <p className="text-sm text-red-600 mt-1">{testResult.error}</p>

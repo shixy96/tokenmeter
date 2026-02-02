@@ -1,0 +1,39 @@
+{
+  "title": "使用统计",
+  "subtitle": "查看 API 使用情况和消费明细",
+  "loading": {
+    "title": "正在加载使用数据...",
+    "description": "首次加载可能需要最多 30 秒"
+  },
+  "error": {
+    "loadFailed": "加载使用数据失败",
+    "ccusageNotInstalled": "ccusage 未安装",
+    "ccusageDescription": "TokenMeter 需要 ccusage 来获取 Claude 使用数据。请先安装：",
+    "retryAfterInstalling": "安装后重试"
+  },
+  "timeRange": {
+    "days7": "7天",
+    "days30": "30天"
+  },
+  "stats": {
+    "costOverview": "费用概览",
+    "tokenOverview": "消耗概览",
+    "lastNDays": "过去 {{days}} 天总费用",
+    "totalTokens": "总Token",
+    "totalInput": "总输入",
+    "totalOutput": "总输出",
+    "cacheRead": "缓存读取",
+    "cacheWrite": "缓存写入"
+  },
+  "chart": {
+    "usageTrend": "使用趋势",
+    "usageTrendSubtitle": "Token (柱状) vs 费用 (曲线)",
+    "modelDistribution": "模型分布",
+    "modelCount": "共 {{count}} 个模型",
+    "otherModels": "+{{count}} 个其他模型",
+    "noModelData": "暂无模型数据",
+    "date": "日期",
+    "tokens": "Token",
+    "cost": "费用"
+  }
+}

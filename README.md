@@ -1,70 +1,95 @@
 # TokenMeter
 
-Mac 菜单栏 API 用量统计应用，实时显示 Claude API 等用量费用。
+English | [中文](README.zh.md)
 
-## 功能
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform: macOS](https://img.shields.io/badge/Platform-macOS-blue.svg)]()
+[![Tauri 2](https://img.shields.io/badge/Tauri-2.0-orange.svg)]()
+[![React 19](https://img.shields.io/badge/React-19-61dafb.svg)]()
 
-- 菜单栏实时显示 API 用量和费用
-- Dashboard 窗口查看详细图表和历史统计
-- 支持 ccusage 和自定义 API Provider
-- 可配置刷新间隔、显示格式、阈值告警
-- 开机自启动
+> A macOS menu bar app for real-time API usage tracking and cost monitoring.
+>
+> Inspired by the xbar plugin `claude_tokens.15m.py`, rebuilt as a standalone native app with Tauri 2 + React.
 
-## 技术栈
+<img src="docs/images/Token_Meter_Snipaste.png" alt="TokenMeter Screenshot" width="400">
 
-- Tauri 2 + Rust
-- React 19 + TypeScript + Vite
-- TailwindCSS v4 + shadcn/ui
-- Recharts + TanStack Query
+## Features
 
-## 架构
+- Real-time API usage display in menu bar
+- Dashboard with detailed charts and statistics
+- Support for ccusage and custom API providers
+- Configurable refresh interval, display format, and budget alerts
+- Launch at login
+- Multi-language support (English / Chinese)
 
-详细的架构图和数据流说明请参阅 [ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+## Quick Start
 
-## 安装
+### Prerequisites
+
+- Node.js 18+
+- Rust 1.75+
+- macOS 10.15+
+- [ccusage](https://github.com/ryoppippi/ccusage) (optional, for Claude API usage tracking)
+
+### Installation
 
 ```bash
 npm install
 ```
 
-## 开发
+### Development
 
 ```bash
-npm run tauri dev          # 开发模式（前后端同时启动）
-npm run tauri build        # 生产构建，产物在 src-tauri/target/release/bundle/
+npm run tauri dev
 ```
 
-## 构建产物
-
-| 平台 | 位置 |
-|------|------|
-| macOS | `src-tauri/target/release/bundle/macos/TokenMeter.app` |
-| DMG | `src-tauri/target/release/bundle/dmg/TokenMeter-x.x.x.dmg` |
-
-## 配置
-
-应用配置存储在 `~/.tokenmeter/`：
-
-```
-~/.tokenmeter/
-├── config.json       # 应用设置（刷新间隔、菜单栏格式等）
-└── providers/        # 自定义 API Provider 配置（JSON 文件）
-```
-
-## 前端 Lint
+### Build
 
 ```bash
-npm run lint        # 检查
-npm run lint:fix    # 自动修复
+npm run tauri build
 ```
 
-## Requirements
+Build artifacts are located in `src-tauri/target/release/bundle/`.
 
-- Node.js 18+
-- Rust 1.75+
-- macOS 10.15+
-- [ccusage](https://github.com/anthropics/ccusage) (可选，用于获取 Claude API 用量)
+## Configuration
 
-## 许可证
+Config files are stored in `~/.tokenmeter/`:
 
-MIT
+| Path | Description |
+|------|-------------|
+| `config.json` | App settings (refresh interval, menu bar format, budget, language) |
+| `providers/*.json` | Custom API provider configurations |
+
+## Tech Stack
+
+- **Backend**: Tauri 2 + Rust
+- **Frontend**: React 19 + TypeScript + Vite
+- **UI**: TailwindCSS v4 + shadcn/ui
+- **Data**: Recharts + TanStack Query
+- **i18n**: i18next + react-i18next
+
+## Architecture
+
+For detailed architecture diagrams and data flow documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Development
+
+See [AGENTS.md](AGENTS.md) for detailed development commands and code conventions.
+
+### Quality Checks
+
+```bash
+# Frontend lint
+npm run lint
+
+# Rust checks (run in src-tauri/)
+cargo fmt --check && cargo clippy && cargo test
+```
+
+## Contributing
+
+Contributions are welcome! Please read [AGENTS.md](AGENTS.md) for development guidelines and quality gates before submitting PRs.
+
+## License
+
+[MIT](LICENSE)

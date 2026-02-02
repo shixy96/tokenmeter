@@ -1,8 +1,8 @@
-# TokenMeter - Mac Menu Bar Usage Statistics App
+# TokenMeter - Mac 菜单栏用量统计应用
 
-## Overview
+## 概述
 
-Transform the existing xbar plugin `claude_tokens.15m.py` into a standalone Mac application using Tauri 2 + React tech stack.
+将现有的 xbar 插件 `claude_tokens.15m.py` 改造为独立的 Mac 应用，使用 Tauri 2 + React 技术栈。
 
 ```python claude_tokens.15m.py
 #!/usr/bin/env python3
@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 def get_modelsdev_prices() -> dict:
-    """Fetch model pricing data from models.dev"""
+    """从 models.dev 获取模型价格数据"""
     try:
         req = urllib.request.Request("https://models.dev/api.json")
         req.add_header("User-Agent", "Mozilla/5.0")
@@ -48,13 +48,13 @@ def get_modelsdev_prices() -> dict:
 
 
 def calculate_fallback_cost(model_name: str, input_tokens: int, output_tokens: int, prices: dict) -> float:
-    """Calculate cost using fallback prices"""
-    # Exact match
+    """使用 fallback 价格计算成本"""
+    # 精确匹配
     if model_name in prices:
         p = prices[model_name]
         return (input_tokens * p["input"] + output_tokens * p["output"]) / 1_000_000
 
-    # Fuzzy match: find keys containing model name (case insensitive)
+    # 模糊匹配：查找包含模型名称的 key（忽略大小写）
     model_lower = model_name.lower()
     for key, p in prices.items():
         if model_lower in key.lower() or key.lower() in model_lower:
@@ -64,7 +64,7 @@ def calculate_fallback_cost(model_name: str, input_tokens: int, output_tokens: i
 
 
 def get_minimax_token() -> Optional[str]:
-    """Read minimax token from config file"""
+    """从配置文件读取 minimax token"""
     config_path = os.path.expanduser("~/.config/agi-account/minimax")
     if os.path.exists(config_path):
         with open(config_path) as f:
@@ -73,7 +73,7 @@ def get_minimax_token() -> Optional[str]:
 
 
 def get_minimax_data() -> Optional[dict]:
-    """Call minimax API to get usage data"""
+    """调用 minimax API 获取用量数据"""
     token = get_minimax_token()
     if not token:
         return None
@@ -92,14 +92,14 @@ def get_minimax_data() -> Optional[dict]:
 
 
 def render_progress_bar(used: float, total: float, width: int = 10) -> str:
-    """Generate ASCII progress bar [████░░░░░░]"""
+    """生成 ASCII 进度条 [████░░░░░░]"""
     pct = min(used / total, 1.0) if total > 0 else 0
     filled = int(pct * width)
     return f"[{'█' * filled}{'░' * (width - filled)}]"
 
 
 def print_minimax_stats(data: dict):
-    """Print minimax statistics"""
+    """打印 minimax 统计信息"""
     print("🔋 MiniMax")
     model_remains = data.get("model_remains", [])
     if not model_remains:
@@ -124,7 +124,7 @@ def format_number(num):
 
 
 def calculate_percentage_change(current: float, previous: float) -> tuple[float, str]:
-    """Calculate percentage change, return (percentage, direction symbol)"""
+    """计算环比变化百分比，返回 (百分比, 方向符号)"""
     if previous == 0:
         return (0, "") if current == 0 else (100, "↑")
     change = ((current - previous) / previous) * 100
@@ -133,7 +133,7 @@ def calculate_percentage_change(current: float, previous: float) -> tuple[float,
 
 
 def calculate_model_percentages(breakdown_list: list) -> list:
-    """Calculate model cost percentages"""
+    """计算模型金额百分比"""
     total_cost = sum(m.get("cost", 0) for m in breakdown_list)
     if total_cost == 0:
         return breakdown_list
@@ -141,7 +141,7 @@ def calculate_model_percentages(breakdown_list: list) -> list:
 
 
 def print_top2_models(breakdowns: list, prefix: str = ""):
-    """Print top 2 models, format: model_name: $cost (percentage%)"""
+    """打印 top2 模型，格式：模型名: $花费 (百分比%)"""
     if not breakdowns:
         return
     breakdowns_with_pct = calculate_model_percentages(breakdowns)
@@ -154,7 +154,7 @@ def print_top2_models(breakdowns: list, prefix: str = ""):
 
 
 def _merge_breakdown(breakdown: dict, day: dict, fallback_prices: dict = None):
-    """Merge model statistics data"""
+    """合并模型统计数据"""
     for model_data in day.get("modelBreakdowns", []):
         model_name = model_data.get("modelName", "unknown")
         if model_name not in breakdown:
@@ -164,7 +164,7 @@ def _merge_breakdown(breakdown: dict, day: dict, fallback_prices: dict = None):
         input_tokens = model_data.get("inputTokens", 0)
         output_tokens = model_data.get("outputTokens", 0)
 
-        # If cost is 0 but has tokens, try using fallback prices
+        # 如果 cost 为 0 但有 token，尝试使用 fallback 价格
         if cost == 0 and (input_tokens > 0 or output_tokens > 0) and fallback_prices:
             cost = calculate_fallback_cost(model_name, input_tokens, output_tokens, fallback_prices)
 
@@ -174,13 +174,13 @@ def _merge_breakdown(breakdown: dict, day: dict, fallback_prices: dict = None):
 
 
 def _to_breakdown_list(breakdown: dict) -> list:
-    """Convert dictionary to list format"""
+    """将字典转换为列表格式"""
     return [{"modelName": k, **v} for k, v in breakdown.items()]
 
 
 def compute_all_stats(daily_data: list, today: str):
-    """Compute all statistics in a single pass"""
-    # Check if there are models with cost=0 but have tokens, fetch fallback prices if so
+    """单次遍历计算所有统计数据"""
+    # 检查是否有 cost=0 但有 token 的模型，如果有则获取 fallback 价格
     fallback_prices = None
     for day in daily_data:
         for model_data in day.get("modelBreakdowns", []):
@@ -195,7 +195,7 @@ def compute_all_stats(daily_data: list, today: str):
     today_usage = None
     total_tokens, total_cost = 0, 0
     total_breakdown = {}
-    active_days = []  # List of dates with usage
+    active_days = []  # 有消耗的日期列表
 
     for day in daily_data:
         date = day.get("date", "")
@@ -205,7 +205,7 @@ def compute_all_stats(daily_data: list, today: str):
         if date == today:
             today_usage = day
 
-        # Only count days with token usage
+        # 只统计有 token 消耗的天
         if tokens > 0:
             active_days.append({
                 "date": date,
@@ -216,25 +216,25 @@ def compute_all_stats(daily_data: list, today: str):
             total_cost += cost
             _merge_breakdown(total_breakdown, day, fallback_prices)
 
-    # Sort by date descending
+    # 按日期降序排序
     active_days.sort(key=lambda x: x["date"], reverse=True)
 
-    # Recent 5 days with usage
+    # 最近 5 天有消耗的
     recent_5_days = active_days[:5]
 
-    # Last 30 days with usage
+    # 最近 30 天有消耗的
     last_30_active = active_days[:30]
     last_30_cost = sum(d["cost"] for d in last_30_active)
     last_30_tokens = sum(d["tokens"] for d in last_30_active)
 
-    # Calculate model distribution for last 30 days
+    # 计算 last 30 days 的模型分布
     last_30_breakdown = {}
     last_30_dates = {d["date"] for d in last_30_active}
     for day in daily_data:
         if day.get("date", "") in last_30_dates:
             _merge_breakdown(last_30_breakdown, day, fallback_prices)
 
-    # Calculate today's breakdown and cost with fallback
+    # 为 today 计算带 fallback 的 breakdown 和 cost
     today_breakdown = {}
     today_cost_with_fallback = 0
     if today_usage:
@@ -292,7 +292,7 @@ def get_ccusage_data() -> dict[str, Any]:
                 current_path = f"{path}:{current_path}"
         env["PATH"] = current_path
 
-        # Prefer globally installed ccusage (faster)
+        # 优先尝试使用全局安装的 ccusage (更快)
         try:
             result = subprocess.run(
                 ["ccusage", "-j", "--offline"],
@@ -307,12 +307,12 @@ def get_ccusage_data() -> dict[str, Any]:
         except FileNotFoundError:
             pass
 
-        # Fallback to npx with @latest (may be cached) + increased timeout
+        # 降级到 npx，使用 @latest (可能已缓存) + 增加超时
         result = subprocess.run(
             ["npx", "ccusage", "-j", "--offline"],
             capture_output=True,
             text=True,
-            timeout=300,  # Increased timeout to 300s for first download
+            timeout=300,  # 增加超时到 300 秒以应对首次下载
             check=False,
             env=env,
         )
@@ -354,7 +354,7 @@ def main():
             print("Failed to fetch usage data")
         return
 
-    # Compute all statistics in a single pass
+    # 单次遍历计算所有统计数据
     daily_data = data.get("daily", [])
     stats = compute_all_stats(daily_data, today)
 
@@ -364,7 +364,7 @@ def main():
     last_30 = stats["last_30_days"]
     recent_5 = stats["recent_5_days"]
 
-    # Calculate daily average (based on last 30 days breakdown cost, including fallback)
+    # 计算日均（基于 last 30 days breakdown 的 cost，包含 fallback）
     last_30_cost = sum(m.get("cost", 0) for m in last_30["breakdown"])
     avg_daily = last_30_cost / 30 if last_30["active_days"] > 0 else 0
 
@@ -375,11 +375,11 @@ def main():
     else:
         total_tokens = today_usage.get("totalTokens", 0)
 
-        # Menu bar format: $today_cost/today_tokens (avg $daily_avg)
+        # 菜单栏格式：$今日花费/今日token数 (avg $日均)
         print(f"${today_cost:.2f}/{format_number(total_tokens)} (avg ${avg_daily:.0f})")
         print("---")
         print(f"📊 Today ({today})")
-        # Compact format: -35%↓   $34.02/$52.15   39.3M
+        # 紧凑格式：-35%↓   $34.02/$52.15   39.3M
         pct, direction = calculate_percentage_change(today_cost, avg_daily)
         sign = "+" if direction == "↑" else "-"
         print(f"{sign}{pct:.0f}%{direction}   ${today_cost:.2f}/${avg_daily:.2f}   {format_number(total_tokens)}")
@@ -402,7 +402,7 @@ def main():
 
     print("---")
 
-    # Stats submenu
+    # Stats 子菜单
     print("📋 Stats")
     # Recent 5 Days
     print("--📆 Recent 5 Days")
@@ -427,63 +427,63 @@ if __name__ == "__main__":
     main()
 ```
 
-## Core Features
+## 核心功能
 
-1. **Menu Bar Display** - Configurable usage information display with color coding support
-2. **Standalone Dashboard Window** - Detailed charts and historical statistics
-3. **API Provider System** - Support for ccusage, MiniMax, and custom APIs (script-based configuration)
-4. **Settings Management** - Refresh interval, display format, threshold configuration, etc.
+1. **菜单栏显示** - 可配置的用量信息展示，支持颜色编码
+2. **独立窗口 Dashboard** - 详细图表和历史统计
+3. **API 提供者系统** - 支持 ccusage、MiniMax 及自定义 API（脚本化配置）
+4. **设置管理** - 刷新间隔、显示格式、阈值配置等
 
-## Tech Stack
+## 技术栈
 
 - **Tauri 2.8** + Rust 1.85+
 - **React 18** + TypeScript + Vite
 - **TailwindCSS** + shadcn/ui
-- **Recharts** - Charts
-- **TanStack Query** - Data caching
-- **boa_engine** - JS script execution (for API response transformation)
+- **Recharts** - 图表
+- **TanStack Query** - 数据缓存
+- **boa_engine** - JS 脚本执行（用于 API 响应转换）
 
-## Project Structure
+## 项目结构
 
 ```
 tokenmeter/
-├── src/                          # React frontend
+├── src/                          # React 前端
 │   ├── components/
-│   │   ├── TrayMenu.tsx          # Menu bar dropdown content
-│   │   ├── Dashboard.tsx         # Main window
-│   │   ├── Settings.tsx          # Settings window
-│   │   ├── ProviderEditor.tsx    # API provider editor
-│   │   └── ui/                   # shadcn components
+│   │   ├── TrayMenu.tsx          # 菜单栏下拉内容
+│   │   ├── Dashboard.tsx         # 主窗口
+│   │   ├── Settings.tsx          # 设置窗口
+│   │   ├── ProviderEditor.tsx    # API 提供者编辑器
+│   │   └── ui/                   # shadcn 组件
 │   ├── hooks/
 │   │   ├── useUsageData.ts
 │   │   └── useProviders.ts
 │   ├── lib/
-│   │   └── api.ts                # Tauri command wrapper
+│   │   └── api.ts                # Tauri 命令封装
 │   └── types/
 │       └── index.ts
-├── src-tauri/                    # Rust backend
+├── src-tauri/                    # Rust 后端
 │   ├── src/
 │   │   ├── main.rs
-│   │   ├── tray.rs               # System tray
+│   │   ├── tray.rs               # 系统托盘
 │   │   ├── commands/
-│   │   │   ├── usage.rs          # ccusage calls
-│   │   │   ├── providers.rs      # API provider management
-│   │   │   └── config.rs         # Configuration management
+│   │   │   ├── usage.rs          # ccusage 调用
+│   │   │   ├── providers.rs      # API 提供者管理
+│   │   │   └── config.rs         # 配置管理
 │   │   └── services/
 │   │       ├── ccusage.rs
-│   │       ├── script_runner.rs  # JS script execution
+│   │       ├── script_runner.rs  # JS 脚本执行
 │   │       └── provider.rs
 │   └── tauri.conf.json
 ├── package.json
 └── Cargo.toml
 ```
 
-## Data Storage
+## 数据存储
 
 ```
 ~/.tokenmeter/
-├── config.json                   # Application config
-└── providers/                    # API provider configs
+├── config.json                   # 应用配置
+└── providers/                    # API 提供者配置
     ├── minimax.json
     └── custom-xxx.json
 ```
@@ -504,9 +504,9 @@ tokenmeter/
 }
 ```
 
-Theme preference is stored in `localStorage` (key: `tokenmeter-theme`).
+主题偏好保存在 `localStorage`（key: `tokenmeter-theme`）。
 
-### API Provider Configuration
+### API 提供者配置
 
 ```json
 {

@@ -1,0 +1,31 @@
+{
+  "title": "Settings",
+  "saveChanges": "Save Changes",
+  "saving": "Saving...",
+  "loading": "Loading settings...",
+  "general": {
+    "title": "General",
+    "launchAtLogin": "Launch at Login",
+    "launchAtLoginDescription": "Start TokenMeter when you log in",
+    "autoLaunchError": "Failed to update auto-launch setting:",
+    "refreshInterval": "Refresh Interval (seconds)",
+    "refreshIntervalDescription": "How often to fetch usage data (60-3600 seconds)",
+    "language": "Language",
+    "languageDescription": "Select display language",
+    "languageSystem": "Follow System",
+    "languageEn": "English",
+    "languageZh": "Chinese"
+  },
+  "menuBar": {
+    "title": "Menu Bar Display",
+    "format": "Display Format",
+    "formatPlaceholder": "$cost $tokens",
+    "formatDescription": "Variables: $cost, $tokens, $input, $output",
+    "budget": "Daily Budget ($)",
+    "budgetDescription": "Used for color coding thresholds",
+    "nearBudgetThreshold": "Near Budget Threshold (%)",
+    "nearBudgetThresholdDescription": "Show orange when remaining budget is below this percentage; show red when exceeded",
+    "colorCoding": "Color Coding",
+    "colorCodingDescription": "Show usage level with colors"
+  }
+}
