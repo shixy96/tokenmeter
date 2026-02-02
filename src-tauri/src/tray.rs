@@ -15,26 +15,31 @@ static IS_REFRESHING: AtomicBool = AtomicBool::new(false);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum UsageLevel {
-    Low,
-    Medium,
-    High,
-    Critical,
+    NearBudget,
+    OverBudget,
 }
 
-fn usage_level_from_cost(cost: f64, budget: f64) -> UsageLevel {
+fn usage_level_from_cost(
+    cost: f64,
+    budget: f64,
+    near_threshold_percent: f64,
+) -> Option<UsageLevel> {
     if budget <= 0.0 {
-        return UsageLevel::Low;
+        return None;
     }
-    let percentage = (cost / budget) * 100.0;
-    if percentage >= 90.0 {
-        UsageLevel::Critical
-    } else if percentage >= 75.0 {
-        UsageLevel::High
-    } else if percentage >= 50.0 {
-        UsageLevel::Medium
-    } else {
-        UsageLevel::Low
+
+    if cost > budget {
+        return Some(UsageLevel::OverBudget);
     }
+
+    if near_threshold_percent > 0.0 {
+        let threshold = budget * (1.0 - (near_threshold_percent / 100.0));
+        if cost >= threshold {
+            return Some(UsageLevel::NearBudget);
+        }
+    }
+
+    None
 }
 
 /// 格式化托盘标题（支持 $cost, $tokens, $input, $output 变量）
@@ -82,11 +87,10 @@ fn set_macos_tray_attributed_title(app: &AppHandle, title: String, level: Option
             return;
         };
 
+        // UX: color coding only indicates close-to / over-budget states.
         let color = match level {
-            UsageLevel::Low => NSColor::systemGreenColor(),
-            UsageLevel::Medium => NSColor::systemYellowColor(),
-            UsageLevel::High => NSColor::systemOrangeColor(),
-            UsageLevel::Critical => NSColor::systemRedColor(),
+            UsageLevel::NearBudget => NSColor::systemOrangeColor(),
+            UsageLevel::OverBudget => NSColor::systemRedColor(),
         };
 
         // Attributes dictionary: { NSForegroundColorAttributeName: NSColor }
@@ -301,6 +305,8 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                             match ccusage::fetch_usage().await {
                                 Ok(data) => {
                                     *state.usage.lock().await = Some(data.clone());
+                                    *state.usage_fetched_at.lock().await =
+                                        Some(std::time::Instant::now());
                                     let config = state.config.lock().await.clone();
                                     update_tray_menu(&app_handle, &data, &config, &[]);
                                     println!("[Tray] Refresh completed successfully");
@@ -362,10 +368,11 @@ pub fn update_tray_menu(
     }
 
     let level = if config.menu_bar.show_color_coding {
-        Some(usage_level_from_cost(
+        usage_level_from_cost(
             usage.today.cost,
             config.menu_bar.fixed_budget,
-        ))
+            config.menu_bar.near_budget_threshold_percent,
+        )
     } else {
         None
     };
@@ -395,15 +402,31 @@ mod usage_level_tests {
 
     #[test]
     fn test_usage_level_budget_zero() {
-        assert_eq!(usage_level_from_cost(10.0, 0.0), UsageLevel::Low);
+        assert_eq!(usage_level_from_cost(10.0, 0.0, 10.0), None);
     }
 
     #[test]
     fn test_usage_level_thresholds() {
-        assert_eq!(usage_level_from_cost(4.9, 10.0), UsageLevel::Low);
-        assert_eq!(usage_level_from_cost(5.0, 10.0), UsageLevel::Medium);
-        assert_eq!(usage_level_from_cost(7.5, 10.0), UsageLevel::High);
-        assert_eq!(usage_level_from_cost(9.0, 10.0), UsageLevel::Critical);
+        assert_eq!(usage_level_from_cost(8.99, 10.0, 10.0), None);
+        assert_eq!(
+            usage_level_from_cost(9.0, 10.0, 10.0),
+            Some(UsageLevel::NearBudget)
+        );
+        assert_eq!(
+            usage_level_from_cost(10.0, 10.0, 10.0),
+            Some(UsageLevel::NearBudget)
+        );
+        assert_eq!(
+            usage_level_from_cost(10.01, 10.0, 10.0),
+            Some(UsageLevel::OverBudget)
+        );
+
+        assert_eq!(
+            usage_level_from_cost(9.8, 10.0, 5.0),
+            Some(UsageLevel::NearBudget)
+        );
+        assert_eq!(usage_level_from_cost(9.49, 10.0, 5.0), None);
+        assert_eq!(usage_level_from_cost(9.99, 10.0, 0.0), None);
     }
 }
 

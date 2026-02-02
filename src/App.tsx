@@ -29,9 +29,11 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 顶部拖拽区域 - 为窗口控制按钮留出空间 */}
+      <div className="h-10 bg-background" data-tauri-drag-region />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b">
-          <div className="px-6 py-2">
+        <div className="border-b bg-background" data-tauri-drag-region>
+          <div className="px-6 py-2" data-tauri-drag-region>
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />

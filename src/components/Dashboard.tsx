@@ -182,7 +182,8 @@ export function Dashboard() {
   }))
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="relative p-6 space-y-6">
+      <div className="absolute inset-x-0 top-0 h-6" data-tauri-drag-region />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -45,6 +45,7 @@ export interface MenuBarConfig {
   format: string
   thresholdMode: 'fixed' | 'percentage'
   fixedBudget: number
+  nearBudgetThresholdPercent: number
   showColorCoding: boolean
 }
 

@@ -7,7 +7,13 @@ pub struct MenuBarConfig {
     pub format: String,
     pub threshold_mode: String,
     pub fixed_budget: f64,
+    #[serde(default = "default_near_budget_threshold_percent")]
+    pub near_budget_threshold_percent: f64,
     pub show_color_coding: bool,
+}
+
+fn default_near_budget_threshold_percent() -> f64 {
+    10.0
 }
 
 impl Default for MenuBarConfig {
@@ -16,6 +22,7 @@ impl Default for MenuBarConfig {
             format: "${cost} ${tokens}".to_string(),
             threshold_mode: "fixed".to_string(),
             fixed_budget: 15.0,
+            near_budget_threshold_percent: default_near_budget_threshold_percent(),
             show_color_coding: true,
         }
     }
@@ -62,6 +69,7 @@ mod tests {
         assert_eq!(config.refresh_interval, 900);
         assert!(!config.launch_at_login);
         assert_eq!(config.menu_bar.fixed_budget, 15.0);
+        assert_eq!(config.menu_bar.near_budget_threshold_percent, 10.0);
     }
 
     #[test]
@@ -82,6 +90,7 @@ mod tests {
         assert_eq!(config.refresh_interval, 600);
         assert!(config.launch_at_login);
         assert_eq!(config.menu_bar.fixed_budget, 20.0);
+        assert_eq!(config.menu_bar.near_budget_threshold_percent, 10.0);
         assert!(!config.menu_bar.show_color_coding);
     }
 
@@ -90,6 +99,7 @@ mod tests {
         let config = MenuBarConfig::default();
         assert_eq!(config.format, "${cost} ${tokens}");
         assert_eq!(config.threshold_mode, "fixed");
+        assert_eq!(config.near_budget_threshold_percent, 10.0);
         assert!(config.show_color_coding);
     }
 

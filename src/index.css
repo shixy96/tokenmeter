@@ -67,3 +67,9 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
+
+/* Tauri window drag region */
+*[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}

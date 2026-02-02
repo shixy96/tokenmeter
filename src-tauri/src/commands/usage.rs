@@ -4,14 +4,41 @@ use crate::services::ccusage;
 use crate::state::AppState;
 use crate::tray;
 use crate::types::UsageSummary;
+use std::time::Duration;
 use tauri::{AppHandle, State};
+
+const MIN_REFRESH_INTERVAL: u64 = 60;
+const MAX_REFRESH_INTERVAL: u64 = 3600;
 
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 pub async fn get_usage_summary(state: State<'_, AppState>) -> Result<UsageSummary, AppError> {
+    let refresh_interval = state
+        .config
+        .lock()
+        .await
+        .refresh_interval
+        .clamp(MIN_REFRESH_INTERVAL, MAX_REFRESH_INTERVAL);
+    let cache_ttl = Duration::from_secs(refresh_interval);
+
     let cached = state.usage.lock().await.clone();
-    if let Some(data) = cached {
-        return Ok(data);
+    let fetched_at = *state.usage_fetched_at.lock().await;
+    if let (Some(data), Some(fetched_at)) = (cached, fetched_at) {
+        if fetched_at.elapsed() < cache_ttl {
+            return Ok(data);
+        }
+    }
+
+    // Avoid running ccusage concurrently when multiple callers race.
+    let _refresh_guard = state.usage_refresh_lock.lock().await;
+
+    // Re-check after acquiring the lock.
+    let cached = state.usage.lock().await.clone();
+    let fetched_at = *state.usage_fetched_at.lock().await;
+    if let (Some(data), Some(fetched_at)) = (cached, fetched_at) {
+        if fetched_at.elapsed() < cache_ttl {
+            return Ok(data);
+        }
     }
 
     let data = ccusage::fetch_usage()
@@ -19,6 +46,7 @@ pub async fn get_usage_summary(state: State<'_, AppState>) -> Result<UsageSummar
         .map_err(|e| AppError::Fetch(e.to_string()))?;
 
     *state.usage.lock().await = Some(data.clone());
+    *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
 
     Ok(data)
 }
@@ -34,6 +62,7 @@ pub async fn refresh_usage(
         .map_err(|e| AppError::Fetch(e.to_string()))?;
 
     *state.usage.lock().await = Some(data.clone());
+    *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
 
     let config = state.config.lock().await.clone();
     tray::update_tray_menu(&app, &data, &config, &[]);
@@ -47,9 +76,6 @@ pub async fn get_config(state: State<'_, AppState>) -> Result<AppConfig, AppErro
     let config = state.config.lock().await;
     Ok(config.clone())
 }
-
-const MIN_REFRESH_INTERVAL: u64 = 60;
-const MAX_REFRESH_INTERVAL: u64 = 86400;
 
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]

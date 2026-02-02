@@ -3,11 +3,14 @@ use crate::types::UsageSummary;
 use anyhow::Result;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 use tokio::sync::Mutex;
 
 pub struct AppState {
     pub config: Mutex<AppConfig>,
     pub usage: Mutex<Option<UsageSummary>>,
+    pub usage_fetched_at: Mutex<Option<Instant>>,
+    pub usage_refresh_lock: Mutex<()>,
     pub config_dir: PathBuf,
 }
 
@@ -29,6 +32,8 @@ impl AppState {
         Ok(Self {
             config: Mutex::new(config),
             usage: Mutex::new(None),
+            usage_fetched_at: Mutex::new(None),
+            usage_refresh_lock: Mutex::new(()),
             config_dir,
         })
     }

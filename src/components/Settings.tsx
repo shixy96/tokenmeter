@@ -172,6 +172,29 @@ export function Settings() {
 
           <Separator />
 
+          <div className="space-y-2">
+            <Label htmlFor="nearBudgetThresholdPercent">Near Budget Threshold (%)</Label>
+            <Input
+              id="nearBudgetThresholdPercent"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={currentConfig.menuBar.nearBudgetThresholdPercent}
+              onChange={(e) => {
+                const value = Number.parseFloat(e.target.value)
+                if (!Number.isNaN(value)) {
+                  updateMenuBar({ nearBudgetThresholdPercent: Math.max(0, Math.min(100, value)) })
+                }
+              }}
+            />
+            <p className="text-sm text-muted-foreground">
+              Show orange when remaining budget is below this percentage; show red when exceeded
+            </p>
+          </div>
+
+          <Separator />
+
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Color Coding</Label>

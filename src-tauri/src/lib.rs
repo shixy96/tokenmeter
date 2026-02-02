@@ -75,6 +75,7 @@ fn spawn_preload_task(app_handle: tauri::AppHandle) {
             Ok(data) => {
                 if let Some(state) = app_handle.try_state::<AppState>() {
                     *state.usage.lock().await = Some(data.clone());
+                    *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
                     let config = state.config.lock().await.clone();
                     tray::update_tray_menu(&app_handle, &data, &config, &[]);
                     // Emit event to notify frontend that data is ready
