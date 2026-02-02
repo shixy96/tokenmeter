@@ -1,0 +1,6 @@
+# Clippy configuration
+# See: https://doc.rust-lang.org/clippy/configuration.html
+
+# Allow expect in tests
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
