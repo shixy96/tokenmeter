@@ -31,9 +31,6 @@
   "engines": {
     "node": ">=18"
   },
-  "os": [
-    "darwin"
-  ],
   "packageManager": "npm@9.8.1",
   "scripts": {
     "dev": "vite",
