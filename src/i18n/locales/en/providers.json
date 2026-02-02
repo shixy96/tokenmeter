@@ -1,0 +1,36 @@
+{
+  "title": "API Providers",
+  "addProvider": "Add Provider",
+  "loading": "Loading providers...",
+  "noProviders": "No providers configured",
+  "list": {
+    "title": "Providers"
+  },
+  "editor": {
+    "newProvider": "New Provider",
+    "editProvider": "Edit Provider",
+    "name": "Name",
+    "enabled": "Enabled",
+    "fetchScript": "Fetch Script (curl command)",
+    "fetchScriptPlaceholder": "curl -s -H 'Authorization: Bearer ${TOKEN}' https://api.example.com/usage",
+    "fetchScriptHint": "Use ${VAR} syntax to reference environment variables defined below.",
+    "transformScript": "Transform Script (JavaScript)",
+    "transformScriptPlaceholder": "(response) => ({ cost: response.total_cost, tokens: response.total_tokens })",
+    "envVariables": "Environment Variables",
+    "envKeyPlaceholder": "KEY",
+    "envValuePlaceholder": "value",
+    "envTempKeyWarning": "Please enter a name for the highlighted environment variable(s)",
+    "addVariable": "Add Variable"
+  },
+  "actions": {
+    "save": "Save",
+    "saving": "Saving...",
+    "test": "Test",
+    "testing": "Testing...",
+    "delete": "Delete"
+  },
+  "testResult": {
+    "passed": "Test Passed",
+    "failed": "Test Failed"
+  }
+}

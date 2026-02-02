@@ -1,0 +1,27 @@
+{
+  "loading": "加载中...",
+  "noUsageData": "暂无使用数据",
+  "tokens": "Token",
+  "tabs": {
+    "today": "今日",
+    "days7": "7天",
+    "days30": "30天"
+  },
+  "chart": {
+    "dailyCost": "每日费用"
+  },
+  "summary": {
+    "activeDays": "{{count}} 天使用汇总",
+    "totalCost": "总费用",
+    "totalTokens": "总Token",
+    "dailyAvg": "日均"
+  },
+  "models": {
+    "topModels": "热门模型"
+  },
+  "actions": {
+    "dashboard": "仪表板",
+    "refresh": "刷新",
+    "quit": "退出"
+  }
+}

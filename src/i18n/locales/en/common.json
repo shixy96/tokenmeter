@@ -1,0 +1,17 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "providers": "Providers",
+    "settings": "Settings"
+  },
+  "loading": "Loading...",
+  "noData": "No data available",
+  "save": "Save",
+  "saving": "Saving...",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "test": "Test",
+  "retry": "Retry",
+  "error": "Error",
+  "success": "Success"
+}

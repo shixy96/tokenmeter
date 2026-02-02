@@ -1,0 +1,31 @@
+{
+  "title": "设置",
+  "saveChanges": "保存更改",
+  "saving": "保存中...",
+  "loading": "正在加载设置...",
+  "general": {
+    "title": "通用",
+    "launchAtLogin": "登录时启动",
+    "launchAtLoginDescription": "登录系统时自动启动 TokenMeter",
+    "autoLaunchError": "更新自动启动设置失败：",
+    "refreshInterval": "刷新间隔（秒）",
+    "refreshIntervalDescription": "获取使用数据的频率（60-3600 秒）",
+    "language": "语言",
+    "languageDescription": "选择显示语言",
+    "languageSystem": "跟随系统",
+    "languageEn": "English",
+    "languageZh": "中文"
+  },
+  "menuBar": {
+    "title": "菜单栏显示",
+    "format": "显示格式",
+    "formatPlaceholder": "$cost $tokens",
+    "formatDescription": "可用变量：$cost, $tokens, $input, $output",
+    "budget": "每日预算（$）",
+    "budgetDescription": "用于颜色阈值判断",
+    "nearBudgetThreshold": "预算临近阈值（%）",
+    "nearBudgetThresholdDescription": "剩余预算低于此百分比时显示橙色；超出预算时显示红色",
+    "colorCoding": "颜色编码",
+    "colorCodingDescription": "使用颜色显示使用级别"
+  }
+}
