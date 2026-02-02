@@ -28,6 +28,7 @@ import {
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRefreshState } from '@/hooks/useRefreshState'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
 import { formatCost, formatTokens } from '@/types'
@@ -53,6 +54,7 @@ function getTimeRangeButtonClass(isActive: boolean): string {
 export function Dashboard() {
   const { data: usage, isLoading, isFetching, error } = useUsageData()
   const refreshMutation = useRefreshUsage()
+  const isGlobalRefreshing = useRefreshState()
   const queryClient = useQueryClient()
   const { toggleTheme, isDark } = useTheme()
   const [timeRange, setTimeRange] = useState<TimeRange>(7)
@@ -174,7 +176,7 @@ export function Dashboard() {
   if (!usage || !filteredData)
     return null
 
-  const isRefreshing = refreshMutation.isPending || isFetching
+  const isRefreshing = isGlobalRefreshing || refreshMutation.isPending || isFetching
   const { dailyUsage, modelBreakdown, periodTotals } = filteredData
 
   // Calculate cache tokens from today's data

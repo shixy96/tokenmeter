@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { DailyBarChart } from '@/components/DailyBarChart'
 import { ModelIcon } from '@/components/icons/ModelIcon'
 import { useConfigEvents } from '@/hooks/useConfigEvents'
+import { useRefreshState } from '@/hooks/useRefreshState'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
 import { cn } from '@/lib/utils'
@@ -57,9 +58,10 @@ export function Tray() {
   useConfigEvents()
   const { data: usage, isLoading, isFetching } = useUsageData()
   const refreshMutation = useRefreshUsage()
+  const isGlobalRefreshing = useRefreshState()
   const { t } = useTranslation('tray')
 
-  const isRefreshing = refreshMutation.isPending || isFetching
+  const isRefreshing = isGlobalRefreshing || refreshMutation.isPending || isFetching
 
   // Listen for usage-updated events from backend to sync data
   useEffect(() => {
