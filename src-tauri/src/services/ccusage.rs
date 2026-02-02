@@ -72,6 +72,7 @@ const DEFAULT_SHELL: &str = "/bin/zsh";
 // ~/.zshrc (interactive) instead of ~/.zprofile (login). We keep the command
 // non-interactive, but add a small, safe bootstrap that covers common install paths
 // (Homebrew) and popular Node version managers.
+#[allow(clippy::literal_string_with_formatting_args)]
 fn build_ccusage_shell_script() -> String {
     let prelude = r#"
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"

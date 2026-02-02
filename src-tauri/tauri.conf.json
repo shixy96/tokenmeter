@@ -24,6 +24,18 @@
         "decorations": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true
+      },
+      {
+        "label": "tray",
+        "title": "TokenMeter Tray",
+        "width": 320,
+        "height": 450,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false
       }
     ],
     "security": {

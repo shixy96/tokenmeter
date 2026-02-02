@@ -1,17 +1,63 @@
 use crate::config::AppConfig;
-use crate::services::ccusage;
-use crate::state::AppState;
 use crate::types::{format_number, ProviderTrayStats, UsageSummary};
-use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(not(target_os = "macos"))]
+use std::sync::atomic::Ordering;
 use tauri::{
     image::Image,
-    menu::{Menu, MenuBuilder, MenuItemBuilder},
-    tray::TrayIconBuilder,
-    AppHandle, Manager,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Emitter,
 };
+#[cfg(target_os = "macos")]
+use tauri_plugin_nspopover::AppExt;
 
 pub const TRAY_ID: &str = "main";
-static IS_REFRESHING: AtomicBool = AtomicBool::new(false);
+#[cfg(not(target_os = "macos"))]
+const TRAY_WINDOW_LABEL: &str = "tray";
+
+// Store the last time the tray window was shown to prevent immediate auto-hide on blur
+// (which can happen due to focus stealing by the menu bar on macOS).
+#[cfg(not(target_os = "macos"))]
+static LAST_SHOW_TIME: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+#[cfg(not(target_os = "macos"))]
+fn current_time_ms() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn mark_tray_shown() {
+    LAST_SHOW_TIME.store(current_time_ms(), Ordering::Relaxed);
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn last_tray_show_mark() -> u64 {
+    LAST_SHOW_TIME.load(Ordering::Relaxed)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn blur_hide_delay_ms() -> Option<u64> {
+    // Blur can be triggered by macOS focus stealing right after show.
+    // Defer hiding for a short grace period, then re-check focus.
+    const GRACE_PERIOD_MS: u64 = 600;
+    let last = LAST_SHOW_TIME.load(Ordering::Relaxed);
+    let now = current_time_ms();
+
+    // If now < last (clock skew), be conservative and defer.
+    if now < last {
+        return Some(GRACE_PERIOD_MS);
+    }
+
+    let elapsed = now - last;
+    if elapsed < GRACE_PERIOD_MS {
+        Some(GRACE_PERIOD_MS - elapsed)
+    } else {
+        None
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum UsageLevel {
@@ -42,7 +88,7 @@ fn usage_level_from_cost(
     None
 }
 
-/// 格式化托盘标题（支持 $cost, $tokens, $input, $output 变量）
+/// Formats tray title (supports $cost, $tokens, $input, $output variables)
 fn format_tray_title(format: &str, usage: &UsageSummary) -> String {
     format
         .replace("${cost}", &format!("${:.2}", usage.today.cost))
@@ -111,145 +157,6 @@ fn set_macos_tray_attributed_title(app: &AppHandle, title: String, level: Option
 #[cfg(not(target_os = "macos"))]
 fn set_macos_tray_attributed_title(_app: &AppHandle, _title: String, _level: Option<UsageLevel>) {}
 
-/// 计算环比变化百分比
-#[allow(clippy::cast_possible_truncation)]
-fn calculate_change(today: f64, daily_avg: f64) -> String {
-    if daily_avg <= 0.0 {
-        return String::new();
-    }
-    let change = ((today - daily_avg) / daily_avg * 100.0).round() as i32;
-    match change.cmp(&0) {
-        std::cmp::Ordering::Greater => format!(" (+{change}%↑)"),
-        std::cmp::Ordering::Less => format!(" ({change}%↓)"),
-        std::cmp::Ordering::Equal => String::new(),
-    }
-}
-
-/// 计算过去 30 天的日均花费
-#[allow(clippy::cast_precision_loss)]
-fn calculate_daily_avg(usage: &UsageSummary) -> f64 {
-    if usage.daily_usage.is_empty() {
-        return 0.0;
-    }
-    let total: f64 = usage.daily_usage.iter().map(|d| d.cost).sum();
-    total / usage.daily_usage.len() as f64
-}
-
-/// 生成 Today 统计标题
-fn format_today_header(usage: &UsageSummary) -> String {
-    let daily_avg = calculate_daily_avg(usage);
-    let change = calculate_change(usage.today.cost, daily_avg);
-    format!(
-        "📊 Today: ${:.2} / {}{}",
-        usage.today.cost,
-        format_number(usage.today.total_tokens),
-        change
-    )
-}
-
-/// 生成模型行文本
-#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-fn format_model_line(model: &str, cost: f64, tokens: u64, total_cost: f64) -> String {
-    let percent = if total_cost > 0.0 {
-        (cost / total_cost * 100.0).round() as u32
-    } else {
-        0
-    };
-    format!(
-        "   {}: ${:.2}/{} ({}%)",
-        model,
-        cost,
-        format_number(tokens),
-        percent
-    )
-}
-
-/// 生成 Last 30 Days 统计文本
-#[allow(clippy::cast_precision_loss)]
-fn format_last_30_days(usage: &UsageSummary) -> String {
-    let total_cost: f64 = usage.daily_usage.iter().map(|d| d.cost).sum();
-    let total_tokens: u64 = usage
-        .daily_usage
-        .iter()
-        .map(|d| d.input_tokens + d.output_tokens)
-        .sum();
-    let days = usage.daily_usage.len();
-    let daily_avg = if days > 0 {
-        total_cost / days as f64
-    } else {
-        0.0
-    };
-    format!(
-        "📅 Last 30 Days: ${:.2} / {} (${:.0}/day)",
-        total_cost,
-        format_number(total_tokens),
-        daily_avg
-    )
-}
-
-/// 构建托盘菜单
-fn build_tray_menu(
-    app: &AppHandle,
-    usage: Option<&UsageSummary>,
-    providers: &[ProviderTrayStats],
-) -> tauri::Result<Menu<tauri::Wry>> {
-    let mut menu_builder = MenuBuilder::new(app);
-
-    // Today 统计
-    let today_text = usage.map_or_else(|| "📊 Today: $-- / --".to_string(), format_today_header);
-    let today_header = MenuItemBuilder::with_id("stat_today", &today_text).build(app)?;
-    menu_builder = menu_builder.item(&today_header);
-
-    // 模型明细
-    if let Some(usage) = usage {
-        let total_cost = usage.today.cost;
-        for (i, model) in usage.model_breakdown.iter().enumerate() {
-            let text = format_model_line(
-                &model.model,
-                model.cost,
-                model.input_tokens + model.output_tokens,
-                total_cost,
-            );
-            let item = MenuItemBuilder::with_id(format!("stat_model_{i}"), &text).build(app)?;
-            menu_builder = menu_builder.item(&item);
-        }
-    }
-
-    // 分隔线 + Last 30 Days
-    let last_30_text = usage.map_or_else(
-        || "📅 Last 30 Days: $-- / --".to_string(),
-        format_last_30_days,
-    );
-    let last_30_days = MenuItemBuilder::with_id("stat_last30", &last_30_text).build(app)?;
-    menu_builder = menu_builder.separator().item(&last_30_days);
-
-    // Provider 统计（只在有数据时显示）
-    if !providers.is_empty() {
-        menu_builder = menu_builder.separator();
-        for (i, provider) in providers.iter().enumerate() {
-            let item =
-                MenuItemBuilder::with_id(format!("stat_provider_{i}"), &provider.display_text)
-                    .build(app)?;
-            menu_builder = menu_builder.item(&item);
-        }
-    }
-
-    // 功能菜单项
-    let open_dashboard = MenuItemBuilder::with_id("dashboard", "Open Dashboard").build(app)?;
-    let refresh = MenuItemBuilder::with_id("refresh", "Refresh Now").build(app)?;
-    let settings = MenuItemBuilder::with_id("settings", "Settings...").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-
-    menu_builder
-        .separator()
-        .item(&open_dashboard)
-        .item(&refresh)
-        .item(&settings)
-        .separator()
-        .item(&quit)
-        .build()
-}
-
 // NOTE: macOS menubar/tray icon needs to be a monochrome template image.
 // Using a relative path like "icons/tray.png" is fragile because the working
 // directory differs between `tauri dev` and the bundled app.
@@ -257,7 +164,8 @@ fn build_tray_menu(
 const TRAY_ICON_PNG: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/icons/tray.png"));
 
 pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    let menu = build_tray_menu(app, None, &[])?;
+    // We do NOT attach a menu, as we want to control the click event ourselves
+    // to toggle the window.
 
     let icon = Image::from_bytes(TRAY_ICON_PNG)
         .or_else(|e| {
@@ -274,64 +182,38 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .icon_as_template(true)
-        .menu(&menu)
-        .show_menu_on_left_click(true)
-        .on_menu_event(move |app, event| {
-            let id = event.id().as_ref();
-            // 忽略统计菜单项的点击（以 stat_ 开头）
-            if id.starts_with("stat_") {
-                return;
-            }
-            println!("[Tray] Menu event received: {id}");
-            match id {
-                "dashboard" => {
-                    println!("[Tray] Opening dashboard...");
-                    // Reuse the same codepath as the tauri command so macOS
-                    // activation policy is updated consistently (Dock/Cmd+Tab).
-                    crate::open_dashboard(app.clone());
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state,
+                ..
+            } = event
+            {
+                if button_state != MouseButtonState::Up {
+                    return;
                 }
-                "refresh" => {
-                    println!("[Tray] Refresh requested...");
-                    if IS_REFRESHING
-                        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                        .is_err()
-                    {
-                        println!("[Tray] Already refreshing, skipping");
-                        return;
+                let app = tray.app_handle();
+                #[cfg(target_os = "macos")]
+                {
+                    if app.is_popover_shown() {
+                        app.hide_popover();
+                    } else {
+                        app.show_popover();
                     }
-                    let app_handle = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        if let Some(state) = app_handle.try_state::<AppState>() {
-                            match ccusage::fetch_usage().await {
-                                Ok(data) => {
-                                    *state.usage.lock().await = Some(data.clone());
-                                    *state.usage_fetched_at.lock().await =
-                                        Some(std::time::Instant::now());
-                                    let config = state.config.lock().await.clone();
-                                    update_tray_menu(&app_handle, &data, &config, &[]);
-                                    println!("[Tray] Refresh completed successfully");
-                                }
-                                Err(e) => {
-                                    eprintln!("[Tray] Failed to refresh usage: {e}");
-                                    update_tray_error(&app_handle);
-                                }
-                            }
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
+                        let is_visible = window.is_visible().unwrap_or(false);
+                        if is_visible {
+                            let _ = window.hide();
+                        } else {
+                            mark_tray_shown();
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
-                        IS_REFRESHING.store(false, Ordering::SeqCst);
-                    });
-                }
-                "settings" => {
-                    println!("[Tray] Opening settings...");
-                    // Reuse the tauri command to ensure Dock/Cmd+Tab behavior
-                    // matches the dashboard open flow.
-                    crate::open_settings(app.clone());
-                }
-                "quit" => {
-                    println!("[Tray] Quitting application...");
-                    app.exit(0);
-                }
-                _ => {
-                    println!("[Tray] Unknown menu event: {id}");
+                    }
                 }
             }
         })
@@ -352,17 +234,15 @@ fn set_tray_title(app: &AppHandle, title: &str) {
     set_macos_tray_attributed_title(app, title.to_string(), None);
 }
 
-/// 更新托盘菜单内容
-pub fn update_tray_menu(
+/// Sets tray title with optional color coding based on usage level.
+fn set_tray_title_with_level(
     app: &AppHandle,
+    title: &str,
     usage: &UsageSummary,
     config: &AppConfig,
-    providers: &[ProviderTrayStats],
 ) {
-    // 更新菜单栏标题
-    let title = format_tray_title(&config.menu_bar.format, usage);
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
-        if let Err(e) = tray.set_title(Some(&title)) {
+        if let Err(e) = tray.set_title(Some(title)) {
             eprintln!("Failed to set tray title: {e}");
         }
     }
@@ -376,18 +256,28 @@ pub fn update_tray_menu(
     } else {
         None
     };
-    set_macos_tray_attributed_title(app, title.clone(), level);
+    set_macos_tray_attributed_title(app, title.to_string(), level);
+}
 
-    // 重建菜单
-    let Some(tray) = app.tray_by_id(TRAY_ID) else {
-        return;
-    };
+/// Updates tray title to include a refreshing indicator while keeping old data.
+pub fn update_tray_refreshing(app: &AppHandle, usage: &UsageSummary, config: &AppConfig) {
+    let title = format_tray_title(&config.menu_bar.format, usage);
+    let title_with_indicator = format!("{title} ⟳");
+    set_tray_title_with_level(app, &title_with_indicator, usage, config);
+}
 
-    if let Err(e) =
-        build_tray_menu(app, Some(usage), providers).and_then(|menu| tray.set_menu(Some(menu)))
-    {
-        eprintln!("Failed to update tray menu: {e}");
-    }
+/// Updates tray menu content
+pub fn update_tray_menu(
+    app: &AppHandle,
+    usage: &UsageSummary,
+    config: &AppConfig,
+    _providers: &[ProviderTrayStats],
+) {
+    let title = format_tray_title(&config.menu_bar.format, usage);
+    set_tray_title_with_level(app, &title, usage, config);
+
+    // Emit event so the tray window updates immediately without waiting for poll.
+    let _ = app.emit("usage-updated", usage);
 }
 
 /// Updates tray title to show error state.
@@ -491,35 +381,5 @@ mod tests {
             "$34.02 39.3M"
         );
         assert_eq!(format_tray_title("${cost}", &usage), "$34.02");
-    }
-
-    #[test]
-    fn test_calculate_change() {
-        assert_eq!(calculate_change(100.0, 50.0), " (+100%↑)");
-        assert_eq!(calculate_change(50.0, 100.0), " (-50%↓)");
-        assert_eq!(calculate_change(100.0, 100.0), "");
-        assert_eq!(calculate_change(100.0, 0.0), "");
-    }
-
-    #[test]
-    fn test_format_today_header() {
-        let usage = make_usage(34.02, 39_300_000, &[50.0, 50.0, 50.0]);
-        let header = format_today_header(&usage);
-        assert!(header.starts_with("📊 Today: $34.02 / 39.3M"));
-        assert!(header.contains("↓")); // 34.02 < 50.0 avg
-    }
-
-    #[test]
-    fn test_format_model_line() {
-        let line = format_model_line("claude-opus-4-5", 20.50, 12_000_000, 34.02);
-        assert_eq!(line, "   claude-opus-4-5: $20.50/12.0M (60%)");
-    }
-
-    #[test]
-    fn test_format_last_30_days() {
-        let usage = make_usage(34.02, 39_300_000, &[50.0, 60.0, 70.0]);
-        let text = format_last_30_days(&usage);
-        assert!(text.starts_with("📅 Last 30 Days: $180.00"));
-        assert!(text.contains("$60/day"));
     }
 }

@@ -1,62 +1,87 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(221 83% 53%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+  /* 暖杏色调 (Warm Apricot) - 亮色主题 */
+  /* 主色调 - 暖杏色 */
+  --color-primary: hsl(28 55% 58%);
+  --color-primary-foreground: hsl(30 20% 98%);
+  --color-ring: hsl(28 50% 60%);
+
+  /* 背景色系 - 奶白调 */
+  --color-background: hsl(30 20% 97%);
+  --color-foreground: hsl(25 15% 20%);
+  --color-card: hsl(30 18% 98%);
+  --color-card-foreground: hsl(25 15% 20%);
+  --color-popover: hsl(30 18% 98%);
+  --color-popover-foreground: hsl(25 15% 20%);
+
+  /* 辅助色系 */
+  --color-secondary: hsl(30 12% 91%);
+  --color-secondary-foreground: hsl(25 15% 20%);
+  --color-muted: hsl(30 10% 93%);
+  --color-muted-foreground: hsl(25 8% 50%);
+  --color-accent: hsl(30 15% 94%);
+  --color-accent-foreground: hsl(25 15% 20%);
+
+  /* 功能色 */
   --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(221 83% 53%);
-  --color-chart-1: hsl(221 83% 53%);
-  --color-chart-2: hsl(142 71% 45%);
-  --color-chart-3: hsl(47 96% 53%);
-  --color-chart-4: hsl(24 95% 53%);
-  --color-chart-5: hsl(262 83% 58%);
+  --color-destructive-foreground: hsl(30 20% 98%);
+
+  /* 边框和输入 */
+  --color-border: hsl(30 10% 87%);
+  --color-input: hsl(30 10% 87%);
+
+  /* 图表色板 - 自然和谐色系 */
+  --color-chart-1: hsl(28 55% 58%);
+  --color-chart-2: hsl(168 40% 45%);
+  --color-chart-3: hsl(215 35% 50%);
+  --color-chart-4: hsl(45 55% 60%);
+  --color-chart-5: hsl(12 45% 55%);
+
+  /* 圆角 */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
 }
 
-/* Dark theme - applied via .dark class */
+/* Dark theme - 暖杏色调 (Warm Apricot) */
 .dark {
-  --color-background: hsl(224 71% 4%);
-  --color-foreground: hsl(213 31% 91%);
-  --color-card: hsl(224 71% 4%);
-  --color-card-foreground: hsl(213 31% 91%);
-  --color-popover: hsl(224 71% 4%);
-  --color-popover-foreground: hsl(213 31% 91%);
-  --color-primary: hsl(217 91% 60%);
-  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-secondary: hsl(222 47% 11%);
-  --color-secondary-foreground: hsl(213 31% 91%);
-  --color-muted: hsl(223 47% 11%);
-  --color-muted-foreground: hsl(215 20% 65%);
-  --color-accent: hsl(216 34% 17%);
-  --color-accent-foreground: hsl(213 31% 91%);
-  --color-destructive: hsl(0 63% 31%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(216 34% 17%);
-  --color-input: hsl(216 34% 17%);
-  --color-ring: hsl(217 91% 60%);
-  --color-chart-1: hsl(217 91% 60%);
-  --color-chart-2: hsl(142 71% 45%);
-  --color-chart-3: hsl(47 96% 53%);
-  --color-chart-4: hsl(24 95% 53%);
-  --color-chart-5: hsl(262 83% 58%);
+  /* 主色调 - 明亮杏色 */
+  --color-primary: hsl(30 60% 62%);
+  --color-primary-foreground: hsl(25 15% 10%);
+  --color-ring: hsl(30 60% 62%);
+
+  /* 背景色系 - 深暖调 */
+  --color-background: hsl(25 12% 9%);
+  --color-foreground: hsl(30 12% 92%);
+  --color-card: hsl(25 12% 11%);
+  --color-card-foreground: hsl(30 12% 92%);
+  --color-popover: hsl(25 12% 11%);
+  --color-popover-foreground: hsl(30 12% 92%);
+
+  /* 辅助色系 */
+  --color-secondary: hsl(25 10% 18%);
+  --color-secondary-foreground: hsl(30 12% 92%);
+  --color-muted: hsl(25 8% 15%);
+  --color-muted-foreground: hsl(30 8% 55%);
+  --color-accent: hsl(25 10% 18%);
+  --color-accent-foreground: hsl(30 12% 92%);
+
+  /* 功能色 */
+  --color-destructive: hsl(0 70% 50%);
+  --color-destructive-foreground: hsl(30 12% 92%);
+
+  /* 边框和输入 */
+  --color-border: hsl(25 8% 22%);
+  --color-input: hsl(25 8% 22%);
+
+  /* 图表色板 - 暗色优化 */
+  --color-chart-1: hsl(30 60% 62%);
+  --color-chart-2: hsl(165 45% 50%);
+  --color-chart-3: hsl(32 55% 58%);
+  --color-chart-4: hsl(265 45% 62%);
+  --color-chart-5: hsl(345 55% 60%);
 }
 
 * {
@@ -72,4 +97,42 @@ body {
 *[data-tauri-drag-region] {
   -webkit-app-region: drag;
   app-region: drag;
+}
+
+/* 玻璃拟态效果 - 杏色调 */
+.glass {
+  background: rgba(200, 170, 140, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-card {
+  background: rgba(200, 170, 140, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(200, 170, 140, 0.08);
+  border-radius: 10px;
+}
+
+.dark .glass {
+  background: rgba(220, 180, 140, 0.03);
+}
+
+.dark .glass-card {
+  background: rgba(220, 180, 140, 0.02);
+  border-color: rgba(220, 180, 140, 0.06);
+}
+
+/* 微妙过渡动效 */
+.transition-glass {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.transition-glass:hover {
+  transform: translateY(-1px);
+}
+
+/* 进度条渐变 - 暖杏色 */
+.progress-gradient {
+  background: linear-gradient(90deg, hsl(30 60% 62%), hsl(28 50% 52%));
 }

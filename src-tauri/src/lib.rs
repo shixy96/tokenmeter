@@ -15,6 +15,8 @@ use commands::providers::{delete_provider, get_providers, save_provider, test_pr
 use commands::usage::{get_config, get_usage_summary, refresh_usage, save_config};
 use services::ccusage;
 use state::AppState;
+#[cfg(not(target_os = "macos"))]
+use std::time::Duration;
 use tauri::{Emitter, Manager};
 
 /// Set Dock icon visibility on macOS
@@ -90,15 +92,27 @@ fn spawn_preload_task(app_handle: tauri::AppHandle) {
     });
 }
 
-#[allow(clippy::missing_panics_doc)]
+#[allow(clippy::needless_pass_by_value)]
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+/// # Panics
+/// Panics if the Tauri application fails to start.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
-        ))
+        ));
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_plugin_nspopover::init());
+
+    builder
         .setup(|app| {
             // Start as accessory app (no Dock icon) since window is hidden by default
             #[cfg(target_os = "macos")]
@@ -113,20 +127,64 @@ pub fn run() {
             app.manage(state);
             tray::setup_tray(app.handle())?;
 
+            #[cfg(target_os = "macos")]
+            {
+                if app.tray_by_id(tray::TRAY_ID).is_some() {
+                    if let Some(window) = app.get_webview_window("tray") {
+                        use tauri_plugin_nspopover::{ToPopoverOptions, WindowExt};
+                        window.to_popover(ToPopoverOptions {
+                            is_fullsize_content: true,
+                        });
+                    }
+                }
+            }
+
             // Start background preload of usage data
             spawn_preload_task(app.handle().clone());
 
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                // 隐藏窗口而不是关闭，应用继续在托盘运行
-                let _ = window.hide();
-                api.prevent_close();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    // Hide window instead of closing, app runs in tray
+                    let _ = window.hide();
+                    api.prevent_close();
 
-                // Hide Dock icon when window is hidden
-                #[cfg(target_os = "macos")]
-                set_dock_visible(window.app_handle(), false);
+                    #[cfg(target_os = "macos")]
+                    {
+                        // Only hide dock if it's the dashboard window being closed
+                        if window.label() == "dashboard" {
+                            set_dock_visible(window.app_handle(), false);
+                        }
+                    }
+                }
+                tauri::WindowEvent::Focused(false) => {
+                    // Auto-hide tray window when it loses focus
+                    if window.label() == "tray" {
+                        #[cfg(not(target_os = "macos"))]
+                        {
+                            if let Some(delay_ms) = tray::blur_hide_delay_ms() {
+                                let show_mark = tray::last_tray_show_mark();
+                                let window = window.clone();
+                                tauri::async_runtime::spawn(async move {
+                                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                                    if tray::last_tray_show_mark() != show_mark {
+                                        return;
+                                    }
+                                    let is_visible = window.is_visible().unwrap_or(false);
+                                    let is_focused = window.is_focused().unwrap_or(false);
+                                    if is_visible && !is_focused {
+                                        let _ = window.hide();
+                                    }
+                                });
+                            } else {
+                                let _ = window.hide();
+                            }
+                        }
+                    }
+                }
+                _ => {}
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -141,6 +199,7 @@ pub fn run() {
             open_dashboard,
             open_settings,
             set_launch_at_login,
+            quit_app,
         ])
         .run(tauri::generate_context!())
         .expect("Error while running Tauri application. Check system tray permissions.");

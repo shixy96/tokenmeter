@@ -57,14 +57,24 @@ pub async fn refresh_usage(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<UsageSummary, AppError> {
-    let data = ccusage::fetch_usage()
-        .await
-        .map_err(|e| AppError::Fetch(e.to_string()))?;
+    let cached = state.usage.lock().await.clone();
+    let config = state.config.lock().await.clone();
+    if let Some(usage) = cached.as_ref() {
+        tray::update_tray_refreshing(&app, usage, &config);
+    }
+
+    let data = match ccusage::fetch_usage().await {
+        Ok(data) => data,
+        Err(e) => {
+            if let Some(usage) = cached.as_ref() {
+                tray::update_tray_menu(&app, usage, &config, &[]);
+            }
+            return Err(AppError::Fetch(e.to_string()));
+        }
+    };
 
     *state.usage.lock().await = Some(data.clone());
     *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
-
-    let config = state.config.lock().await.clone();
     tray::update_tray_menu(&app, &data, &config, &[]);
 
     Ok(data)
@@ -97,7 +107,7 @@ pub async fn save_config(
         .map_err(|e| AppError::Config(e.to_string()))?;
     *state.config.lock().await = config.clone();
 
-    // 更新 menubar 标题以反映新的 display format
+    // Update menubar title to reflect new display format
     if let Some(usage) = state.usage.lock().await.as_ref() {
         tray::update_tray_menu(&app, usage, &config, &[]);
     }

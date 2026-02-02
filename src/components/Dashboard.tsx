@@ -31,7 +31,13 @@ import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
 import { formatCost, formatTokens } from '@/types'
 
-const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#a855f7', '#06b6d4']
+const COLORS = [
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+]
 
 type TimeRange = 7 | 30
 
@@ -187,7 +193,12 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">使用统计</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">使用统计</h1>
+            {isRefreshing && (
+              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">查看 API 使用情况和消费明细</p>
         </div>
         <div className="flex items-center gap-2">
@@ -301,32 +312,33 @@ export function Dashboard() {
               <ComposedChart data={chartData}>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke={isDark ? 'hsl(216 34% 17%)' : 'hsl(214.3 31.8% 91.4%)'}
+                  stroke="var(--color-border)"
                 />
                 <XAxis
                   dataKey="date"
                   tickFormatter={value => value.slice(5)}
                   fontSize={12}
-                  stroke={isDark ? 'hsl(215 20% 65%)' : 'hsl(215.4 16.3% 46.9%)'}
+                  stroke="var(--color-muted-foreground)"
                 />
                 <YAxis
                   yAxisId="left"
                   tickFormatter={value => formatTokens(value)}
                   fontSize={12}
-                  stroke={isDark ? 'hsl(215 20% 65%)' : 'hsl(215.4 16.3% 46.9%)'}
+                  stroke="var(--color-muted-foreground)"
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
                   tickFormatter={value => `$${value.toFixed(2)}`}
                   fontSize={12}
-                  stroke={isDark ? 'hsl(215 20% 65%)' : 'hsl(215.4 16.3% 46.9%)'}
+                  stroke="var(--color-muted-foreground)"
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: isDark ? 'hsl(224 71% 4%)' : 'hsl(0 0% 100%)',
-                    border: `1px solid ${isDark ? 'hsl(216 34% 17%)' : 'hsl(214.3 31.8% 91.4%)'}`,
+                    backgroundColor: 'var(--color-popover)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '8px',
+                    color: 'var(--color-popover-foreground)',
                   }}
                   formatter={(value, name) => {
                     if (name === 'tokens')
@@ -334,6 +346,7 @@ export function Dashboard() {
                     return [`$${Number(value).toFixed(4)}`, '费用']
                   }}
                   labelFormatter={label => `日期: ${label}`}
+                  labelStyle={{ color: 'var(--color-popover-foreground)' }}
                 />
                 <Legend
                   verticalAlign="bottom"
@@ -406,12 +419,13 @@ export function Dashboard() {
                           </Pie>
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: isDark ? 'hsl(224 71% 4%)' : 'hsl(0 0% 100%)',
-                              border: `1px solid ${isDark ? 'hsl(216 34% 17%)' : 'hsl(214.3 31.8% 91.4%)'}`,
+                              backgroundColor: 'var(--color-popover)',
+                              border: '1px solid var(--color-border)',
                               borderRadius: '8px',
+                              color: 'var(--color-popover-foreground)',
                             }}
                             itemStyle={{
-                              color: isDark ? 'hsl(210 40% 98%)' : 'hsl(222.2 47.4% 11.2%)',
+                              color: 'var(--color-popover-foreground)',
                             }}
                             formatter={value => [`$${Number(value).toFixed(4)}`, '费用']}
                           />

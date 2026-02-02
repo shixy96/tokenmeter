@@ -23,6 +23,7 @@ export function useUsageData() {
     queryKey: ['usage'],
     queryFn: getUsageSummary,
     refetchInterval: refreshInterval,
+    refetchIntervalInBackground: true,
     staleTime: 5 * 60 * 1000,
   })
 }

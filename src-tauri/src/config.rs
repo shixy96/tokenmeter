@@ -12,7 +12,7 @@ pub struct MenuBarConfig {
     pub show_color_coding: bool,
 }
 
-fn default_near_budget_threshold_percent() -> f64 {
+const fn default_near_budget_threshold_percent() -> f64 {
     10.0
 }
 
