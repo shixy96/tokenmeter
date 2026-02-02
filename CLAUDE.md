@@ -25,8 +25,8 @@ npm run lint:fix
 # Rust format check (run in src-tauri/ directory)
 cargo fmt --check
 
-# Rust clippy check
-cargo clippy
+# Rust clippy check (must use --all-targets to include test code)
+cargo clippy --all-targets -- -D warnings
 
 # Rust unit tests
 cargo test
@@ -175,8 +175,10 @@ cargo run --example test_config       # Validate config loading
 After modifying code, must run these checks:
 
 1. **Frontend**: `npm run lint`
-2. **Rust**: `cargo fmt --check && cargo clippy && cargo test`
+2. **Rust**: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`
 3. **Core functionality changes**: Run corresponding example validation
+
+> **Note**: `--all-targets` is required to check test code (`#[cfg(test)]` modules). Without it, clippy only checks library/binary code, which may cause CI failures.
 
 ## Code Standards
 

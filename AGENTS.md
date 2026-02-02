@@ -56,8 +56,8 @@ cargo fmt --check
 # Auto format (modifies files)
 cargo fmt
 
-# Clippy (this project has strict clippy requirements)
-cargo clippy
+# Clippy (must use --all-targets to include test code, -D warnings to treat warnings as errors)
+cargo clippy --all-targets -- -D warnings
 
 # Unit tests (all)
 cargo test
@@ -90,7 +90,11 @@ npm run tauri build
 Artifacts are typically in: `src-tauri/target/release/bundle/`.
 
 ## Quality Gates (recommended before commit)
-1) Frontend: `npm run lint`; 2) Rust: `cargo fmt --check && cargo clippy && cargo test`; 3) Core logic changes: run `cargo run --example ...`
+1) Frontend: `npm run lint`
+2) Rust: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`
+3) Core logic changes: run `cargo run --example ...`
+
+> **Note**: `--all-targets` is required to check test code (`#[cfg(test)]` modules). Without it, clippy only checks library/binary code, which may cause CI failures.
 
 ## Code Style & Conventions
 
