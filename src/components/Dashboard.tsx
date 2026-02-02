@@ -196,12 +196,7 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{t('title')}</h1>
-            {isRefreshing && (
-              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-            )}
-          </div>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
