@@ -1,4 +1,5 @@
 import type { AppConfig } from '@/types'
+import * as React from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,35 @@ import { Switch } from '@/components/ui/switch'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useConfig, useSaveConfig } from '@/hooks/useUsageData'
 import { setLaunchAtLogin } from '@/lib/api'
+
+interface NumberInputHandlers {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onBlur: (e: React.FocusEvent<HTMLInputElement>) => void
+}
+
+function createNumberInputHandlers(
+  updateFn: (value: number) => void,
+  parser: (str: string) => number,
+  clamp?: { min?: number, max?: number },
+): NumberInputHandlers {
+  return {
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parser(e.target.value)
+      if (!Number.isNaN(value)) {
+        updateFn(value)
+      }
+    },
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+      const value = parser(e.target.value)
+      if (!Number.isNaN(value)) {
+        const clamped = clamp
+          ? Math.max(clamp.min ?? -Infinity, Math.min(clamp.max ?? Infinity, value))
+          : value
+        updateFn(clamped)
+      }
+    },
+  }
+}
 
 export function Settings() {
   const { data: config, isLoading } = useConfig()
@@ -121,12 +151,11 @@ export function Settings() {
               min={60}
               max={3600}
               value={currentConfig.refreshInterval}
-              onChange={(e) => {
-                const value = Number.parseInt(e.target.value, 10)
-                if (!Number.isNaN(value)) {
-                  updateConfig({ refreshInterval: Math.max(60, Math.min(3600, value)) })
-                }
-              }}
+              {...createNumberInputHandlers(
+                value => updateConfig({ refreshInterval: value }),
+                str => Number.parseInt(str, 10),
+                { min: 60, max: 3600 },
+              )}
             />
             <p className="text-sm text-muted-foreground">
               {t('general.refreshIntervalDescription')}
@@ -181,12 +210,11 @@ export function Settings() {
               min={0}
               step={0.01}
               value={currentConfig.menuBar.fixedBudget}
-              onChange={(e) => {
-                const value = Number.parseFloat(e.target.value)
-                if (!Number.isNaN(value)) {
-                  updateMenuBar({ fixedBudget: Math.max(0, value) })
-                }
-              }}
+              {...createNumberInputHandlers(
+                value => updateMenuBar({ fixedBudget: value }),
+                str => Number.parseFloat(str),
+                { min: 0 },
+              )}
             />
             <p className="text-sm text-muted-foreground">
               {t('menuBar.budgetDescription')}
@@ -204,12 +232,11 @@ export function Settings() {
               max={100}
               step={1}
               value={currentConfig.menuBar.nearBudgetThresholdPercent}
-              onChange={(e) => {
-                const value = Number.parseFloat(e.target.value)
-                if (!Number.isNaN(value)) {
-                  updateMenuBar({ nearBudgetThresholdPercent: Math.max(0, Math.min(100, value)) })
-                }
-              }}
+              {...createNumberInputHandlers(
+                value => updateMenuBar({ nearBudgetThresholdPercent: value }),
+                str => Number.parseFloat(str),
+                { min: 0, max: 100 },
+              )}
             />
             <p className="text-sm text-muted-foreground">
               {t('menuBar.nearBudgetThresholdDescription')}

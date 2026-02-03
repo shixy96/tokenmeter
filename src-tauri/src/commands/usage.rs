@@ -62,15 +62,17 @@ pub async fn refresh_usage(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<UsageSummary, AppError> {
+    // Emit refresh-started event to sync UI state across windows
+    let _ = app.emit("refresh-started", ());
+
     let cached = state.usage.lock().await.clone();
     let config = state.config.lock().await.clone();
-    if let Some(usage) = cached.as_ref() {
-        tray::update_tray_refreshing(&app, usage, &config);
-    }
 
     let data = match ccusage::fetch_usage().await {
         Ok(data) => data,
         Err(e) => {
+            // Emit refresh-completed even on failure to re-enable buttons
+            let _ = app.emit("refresh-completed", ());
             if let Some(usage) = cached.as_ref() {
                 tray::update_tray_menu(&app, usage, &config, &[]);
             }
@@ -81,6 +83,9 @@ pub async fn refresh_usage(
     *state.usage.lock().await = Some(data.clone());
     *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
     tray::update_tray_menu(&app, &data, &config, &[]);
+
+    // Emit refresh-completed to re-enable buttons
+    let _ = app.emit("refresh-completed", ());
 
     Ok(data)
 }

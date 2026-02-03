@@ -33,25 +33,27 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top drag region - leave space for window control buttons */}
-      <div className="h-10 bg-background" data-tauri-drag-region />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b bg-background" data-tauri-drag-region>
-          <div className="px-6 py-2" data-tauri-drag-region>
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                {t('nav.dashboard')}
-              </TabsTrigger>
-              <TabsTrigger value="providers" className="flex items-center gap-2">
-                <Plug className="w-4 h-4" />
-                {t('nav.providers')}
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <SettingsIcon className="w-4 h-4" />
-                {t('nav.settings')}
-              </TabsTrigger>
-            </TabsList>
+        <div className="sticky top-0 z-20 bg-background" data-tauri-drag-region>
+          {/* Top drag region - leave space for window control buttons */}
+          <div className="h-6 bg-background" data-tauri-drag-region />
+          <div className="border-b bg-background" data-tauri-drag-region>
+            <div className="px-6 py-2" data-tauri-drag-region>
+              <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  {t('nav.dashboard')}
+                </TabsTrigger>
+                <TabsTrigger value="providers" className="flex items-center gap-2">
+                  <Plug className="w-4 h-4" />
+                  {t('nav.providers')}
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex items-center gap-2">
+                  <SettingsIcon className="w-4 h-4" />
+                  {t('nav.settings')}
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
         </div>
 
