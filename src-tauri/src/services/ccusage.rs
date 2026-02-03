@@ -259,6 +259,8 @@ pub async fn fetch_usage() -> Result<UsageSummary> {
                 cost: day_cost,
                 input_tokens: d.input_tokens,
                 output_tokens: d.output_tokens,
+                cache_creation_input_tokens: d.cache_creation_tokens.unwrap_or(0),
+                cache_read_input_tokens: d.cache_read_tokens.unwrap_or(0),
                 models: d
                     .model_breakdowns
                     .iter()

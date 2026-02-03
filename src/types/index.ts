@@ -20,6 +20,8 @@ export interface DailyUsage {
   cost: number
   inputTokens: number
   outputTokens: number
+  cacheCreationInputTokens: number
+  cacheReadInputTokens: number
   models: ModelUsage[]
 }
 

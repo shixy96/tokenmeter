@@ -101,7 +101,7 @@ body {
 
 /* Glassmorphism effect - Apricot tones */
 .glass {
-  background: rgba(200, 170, 140, 0.02);
+  background: rgba(200, 170, 140, 0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -115,7 +115,7 @@ body {
 }
 
 .dark .glass {
-  background: rgba(220, 180, 140, 0.03);
+  background: rgba(220, 180, 140, 0.08);
 }
 
 .dark .glass-card {

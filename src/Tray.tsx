@@ -183,13 +183,13 @@ export function Tray() {
     <div className="relative flex flex-col h-screen overflow-hidden text-sm bg-background select-none">
       <button
         onClick={handleOpenSettings}
-        className="absolute top-3 right-3 z-10 p-1.5 rounded-lg cursor-pointer outline-none
+        className="absolute top-4 right-4 z-10 p-1.5 rounded-lg cursor-pointer outline-none
                    transition-colors hover:bg-accent/50"
       >
         <Settings className="w-4 h-4 text-muted-foreground" />
       </button>
 
-      <div className="px-6 py-5 text-center" data-tauri-drag-region>
+      <div className="px-6 py-6 text-center" data-tauri-drag-region>
         <div className="text-3xl font-semibold tracking-tight">
           {formatCost(displayUsage.today.cost)}
         </div>
@@ -282,20 +282,20 @@ export function Tray() {
                   <ModelIcon model={model.model} className="w-4 h-4 shrink-0 text-muted-foreground" />
                   <span className="truncate font-medium" title={model.model}>{model.model}</span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="font-semibold">{formatCost(model.cost)}</span>
-                  <span className="text-[10px] text-muted-foreground w-8 text-right">
-                    (
-                    {Math.round(percent)}
-                    %)
-                  </span>
-                </div>
+                <span className="font-semibold shrink-0">{formatCost(model.cost)}</span>
               </div>
-              <div className="mt-2 h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full progress-gradient"
-                  style={{ width: `${percent}%` }}
-                />
+              <div className="mt-2 flex items-center gap-1">
+                <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full progress-gradient"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">
+                  (
+                  {Math.round(percent)}
+                  %)
+                </span>
               </div>
             </div>
           )

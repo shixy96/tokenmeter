@@ -389,6 +389,8 @@ mod tests {
                     cost,
                     input_tokens: 1000,
                     output_tokens: 1000,
+                    cache_creation_input_tokens: 0,
+                    cache_read_input_tokens: 0,
                     models: vec![],
                 })
                 .collect(),
