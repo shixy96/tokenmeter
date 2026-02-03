@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Settings,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DailyBarChart } from '@/components/DailyBarChart'
 import { ModelIcon } from '@/components/icons/ModelIcon'
@@ -16,8 +16,19 @@ import { useConfigEvents } from '@/hooks/useConfigEvents'
 import { useRefreshState } from '@/hooks/useRefreshState'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
-import { cn } from '@/lib/utils'
+import {
+  cn,
+  getDailyTotalTokens,
+  normalizeDate,
+  sortByDateDesc,
+  validateDailyUsage,
+} from '@/lib/utils'
 import { formatCost, formatTokens } from '@/types'
+
+interface ModelWithPercent extends ModelUsage {
+  percent: number
+  progressStyle: React.CSSProperties
+}
 
 interface AggregatedData {
   modelMap: Map<string, ModelUsage>
@@ -30,10 +41,10 @@ function aggregateModels(days: DailyUsage[]): AggregatedData {
   let totalCost = 0
   let totalTokens = 0
 
-  days.forEach((day) => {
+  for (const day of days) {
     totalCost += day.cost
-    totalTokens += day.inputTokens + day.outputTokens
-    day.models.forEach((m) => {
+    totalTokens += getDailyTotalTokens(day)
+    for (const m of day.models) {
       const existing = modelMap.get(m.model) || {
         model: m.model,
         cost: 0,
@@ -44,10 +55,30 @@ function aggregateModels(days: DailyUsage[]): AggregatedData {
       existing.inputTokens += m.inputTokens
       existing.outputTokens += m.outputTokens
       modelMap.set(m.model, existing)
-    })
-  })
+    }
+  }
 
   return { modelMap, totalCost, totalTokens }
+}
+
+// Sort models by cost in descending order
+function sortModelsByCost(models: ModelUsage[]): ModelUsage[] {
+  return [...models].sort((a, b) => b.cost - a.cost)
+}
+
+// Get top N models from aggregated days data
+function getTopModels(days: DailyUsage[], limit: number): { models: ModelUsage[], totalCost: number, totalTokens: number } {
+  const { modelMap, totalCost, totalTokens } = aggregateModels(days)
+  const models = sortModelsByCost(Array.from(modelMap.values())).slice(0, limit)
+  return { models, totalCost, totalTokens }
+}
+
+// Add percent and progress style to models for rendering
+function addPercentToModels(models: ModelUsage[], totalCost: number): ModelWithPercent[] {
+  return models.map((m) => {
+    const percent = totalCost > 0 ? (m.cost / totalCost) * 100 : 0
+    return { ...m, percent, progressStyle: { width: `${percent}%` } }
+  })
 }
 
 export function Tray() {
@@ -100,7 +131,93 @@ export function Tray() {
     await invoke('open_settings')
   }
 
-  const displayUsage = usage ?? lastUsageRef.current
+  // Stabilize displayUsage reference with useMemo to ensure proper dependency tracking
+  const displayUsage = useMemo(() => usage ?? lastUsageRef.current, [usage])
+
+  // Pre-compute sorted daily usage (shared across all tabs)
+  const sortedDailyUsage = useMemo(() => {
+    if (!displayUsage)
+      return []
+    if (import.meta.env.DEV) {
+      validateDailyUsage(displayUsage.dailyUsage)
+    }
+    return sortByDateDesc(displayUsage.dailyUsage)
+  }, [displayUsage])
+
+  // Compute tab-specific data based on activeTab
+  const tabData = useMemo(() => {
+    if (!displayUsage || sortedDailyUsage.length === 0) {
+      return {
+        activeModels: [] as ModelWithPercent[],
+        activeTotalCost: 0,
+        activeTotalTokens: 0,
+        chartData: [],
+        summaryStats: null,
+      }
+    }
+
+    switch (activeTab) {
+      case 'today': {
+        const normalizedToday = normalizeDate(displayUsage.today.date)
+        const todayModels = sortedDailyUsage
+          .find(d => normalizeDate(d.date) === normalizedToday)
+          ?.models || []
+        const sortedModels = sortModelsByCost(todayModels).slice(0, 3)
+        return {
+          activeModels: addPercentToModels(sortedModels, displayUsage.today.cost),
+          activeTotalCost: displayUsage.today.cost,
+          activeTotalTokens: displayUsage.today.totalTokens,
+          chartData: [],
+          summaryStats: null,
+        }
+      }
+
+      case '7days': {
+        const last7Days = sortedDailyUsage.slice(0, 7)
+        const { models, totalCost, totalTokens } = getTopModels(last7Days, 5)
+        const dailyAvg = last7Days.length > 0 ? totalCost / last7Days.length : 0
+        return {
+          activeModels: addPercentToModels(models, totalCost),
+          activeTotalCost: totalCost,
+          activeTotalTokens: totalTokens,
+          chartData: last7Days.map(d => ({ date: d.date, cost: d.cost })),
+          summaryStats: {
+            activeDays: last7Days.length,
+            totalCost,
+            totalTokens,
+            dailyAvg,
+          },
+        }
+      }
+
+      case '30days': {
+        const last30Days = sortedDailyUsage.slice(0, 30)
+        const { models, totalCost, totalTokens } = getTopModels(last30Days, 5)
+        const dailyAvg = last30Days.length > 0 ? totalCost / last30Days.length : 0
+        return {
+          activeModels: addPercentToModels(models, totalCost),
+          activeTotalCost: totalCost,
+          activeTotalTokens: totalTokens,
+          chartData: [],
+          summaryStats: {
+            activeDays: last30Days.length,
+            totalCost,
+            totalTokens,
+            dailyAvg,
+          },
+        }
+      }
+    }
+  }, [displayUsage, sortedDailyUsage, activeTab])
+
+  const { activeModels, chartData, summaryStats } = tabData
+
+  // Tab configuration for rendering
+  const tabs: Array<{ id: 'today' | '7days' | '30days', label: string }> = [
+    { id: 'today', label: t('tabs.today') },
+    { id: '7days', label: t('tabs.days7') },
+    { id: '30days', label: t('tabs.days30') },
+  ]
 
   if (isLoading && !displayUsage) {
     return (
@@ -117,67 +234,6 @@ export function Tray() {
       </div>
     )
   }
-
-  const todayModels = displayUsage.dailyUsage
-    .find(d => d.date === displayUsage.today.date)
-    ?.models || []
-
-  const sortedTodayModels = [...todayModels].sort((a, b) => b.cost - a.cost)
-  const top3Today = sortedTodayModels.slice(0, 3)
-
-  const last7Days = [...displayUsage.dailyUsage]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 7)
-
-  const { modelMap: aggregated7DayModels, totalCost: totalCost7Days } = aggregateModels(last7Days)
-  const sorted7DayModels = Array.from(aggregated7DayModels.values())
-    .sort((a, b) => b.cost - a.cost)
-  const top5Last7Days = sorted7DayModels.slice(0, 5)
-
-  const dailyChartData = last7Days.map(d => ({
-    date: d.date,
-    cost: d.cost,
-  }))
-
-  const last30Days = [...displayUsage.dailyUsage]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 30)
-
-  const {
-    modelMap: aggregated30DayModels,
-    totalCost: totalCost30Days,
-    totalTokens: totalTokens30Days,
-  } = aggregateModels(last30Days)
-  const sorted30DayModels = Array.from(aggregated30DayModels.values())
-    .sort((a, b) => b.cost - a.cost)
-  const top5Last30Days = sorted30DayModels.slice(0, 5)
-
-  const dailyAvg30Days = last30Days.length > 0 ? totalCost30Days / last30Days.length : 0
-
-  const getActiveModels = (): ModelUsage[] => {
-    switch (activeTab) {
-      case 'today':
-        return top3Today
-      case '7days':
-        return top5Last7Days
-      case '30days':
-        return top5Last30Days
-    }
-  }
-
-  const getActiveTotalCost = (): number => {
-    switch (activeTab) {
-      case 'today':
-        return displayUsage.today.cost
-      case '7days':
-        return totalCost7Days
-      case '30days':
-        return totalCost30Days
-    }
-  }
-
-  const activeModels = getActiveModels()
-  const activeTotalCost = getActiveTotalCost()
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden text-sm bg-background select-none">
@@ -201,68 +257,51 @@ export function Tray() {
       </div>
 
       <div className="flex mx-4 p-1 rounded-lg glass">
-        <button
-          onClick={() => setActiveTab('today')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md cursor-pointer outline-none transition-colors',
-            activeTab === 'today'
-              ? 'bg-primary/20 text-foreground'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {t('tabs.today')}
-        </button>
-        <button
-          onClick={() => setActiveTab('7days')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md cursor-pointer outline-none transition-colors',
-            activeTab === '7days'
-              ? 'bg-primary/20 text-foreground'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {t('tabs.days7')}
-        </button>
-        <button
-          onClick={() => setActiveTab('30days')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md cursor-pointer outline-none transition-colors',
-            activeTab === '30days'
-              ? 'bg-primary/20 text-foreground'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {t('tabs.days30')}
-        </button>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'flex-1 py-1.5 text-xs font-medium rounded-md cursor-pointer outline-none transition-colors',
+              activeTab === tab.id
+                ? 'bg-primary/20 text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex-1 px-5 py-4 space-y-3 overflow-y-auto">
-        {activeTab === '7days' && dailyChartData.length > 0 && (
-          <div className="glass-card p-3">
-            <div className="text-xs font-medium text-muted-foreground mb-2">{t('chart.dailyCost')}</div>
-            <DailyBarChart data={dailyChartData} />
-          </div>
-        )}
-
-        {activeTab === '30days' && (
+        {/* 汇总卡片 - 7天和30天都显示 */}
+        {(activeTab === '7days' || activeTab === '30days') && summaryStats && (
           <div className="glass-card p-3">
             <div className="text-xs font-medium text-muted-foreground mb-2">
-              {t('summary.activeDays', { count: last30Days.length })}
+              {t('summary.activeDays', { count: summaryStats.activeDays })}
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
-                <div className="text-lg font-semibold">{formatCost(totalCost30Days)}</div>
+                <div className="text-lg font-semibold">{formatCost(summaryStats.totalCost)}</div>
                 <div className="text-[10px] text-muted-foreground">{t('summary.totalCost')}</div>
               </div>
               <div>
-                <div className="text-lg font-semibold">{formatTokens(totalTokens30Days)}</div>
+                <div className="text-lg font-semibold">{formatTokens(summaryStats.totalTokens)}</div>
                 <div className="text-[10px] text-muted-foreground">{t('summary.totalTokens')}</div>
               </div>
               <div>
-                <div className="text-lg font-semibold">{formatCost(dailyAvg30Days)}</div>
+                <div className="text-lg font-semibold">{formatCost(summaryStats.dailyAvg)}</div>
                 <div className="text-[10px] text-muted-foreground">{t('summary.dailyAvg')}</div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* 7天图表 */}
+        {activeTab === '7days' && chartData.length > 0 && (
+          <div className="glass-card p-3">
+            <div className="text-xs font-medium text-muted-foreground mb-2">{t('chart.dailyCost')}</div>
+            <DailyBarChart data={chartData} />
           </div>
         )}
 
@@ -272,34 +311,30 @@ export function Tray() {
           </div>
         )}
 
-        {activeModels.map((model) => {
-          const percent = activeTotalCost > 0 ? (model.cost / activeTotalCost) * 100 : 0
-
-          return (
-            <div key={model.model} className="p-3 glass-card">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <ModelIcon model={model.model} className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate font-medium" title={model.model}>{model.model}</span>
-                </div>
-                <span className="font-semibold shrink-0">{formatCost(model.cost)}</span>
+        {activeModels.map(model => (
+          <div key={`${activeTab}-${model.model}`} className="p-3 glass-card">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <ModelIcon model={model.model} className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className="truncate font-medium" title={model.model}>{model.model}</span>
               </div>
-              <div className="mt-2 flex items-center gap-1">
-                <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full progress-gradient"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-                <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">
-                  (
-                  {Math.round(percent)}
-                  %)
-                </span>
-              </div>
+              <span className="font-semibold shrink-0">{formatCost(model.cost)}</span>
             </div>
-          )
-        })}
+            <div className="mt-2 flex items-center gap-1">
+              <div className="flex-1 h-1.5 bg-secondary/50 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full progress-gradient"
+                  style={model.progressStyle}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground w-10 text-right shrink-0">
+                (
+                {Math.round(model.percent)}
+                %)
+              </span>
+            </div>
+          </div>
+        ))}
 
         {activeModels.length === 0 && (
           <div className="py-4 text-center text-muted-foreground">

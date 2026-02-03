@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRefreshState } from '@/hooks/useRefreshState'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
-import { cn } from '@/lib/utils'
+import { cn, getDailyTotalTokens } from '@/lib/utils'
 import { formatCost, formatTokens } from '@/types'
 
 const COLORS = [
@@ -111,14 +111,17 @@ export function Dashboard() {
 
     // Calculate totals for the period
     const periodTotals = dailyUsage.reduce(
-      (acc, day) => ({
-        cost: acc.cost + day.cost,
-        inputTokens: acc.inputTokens + day.inputTokens,
-        outputTokens: acc.outputTokens + day.outputTokens,
-        totalTokens: acc.totalTokens + day.inputTokens + day.outputTokens,
-        cacheReadTokens: acc.cacheReadTokens + day.cacheReadInputTokens,
-        cacheWriteTokens: acc.cacheWriteTokens + day.cacheCreationInputTokens,
-      }),
+      (acc, day) => {
+        const dayTotalTokens = getDailyTotalTokens(day)
+        return {
+          cost: acc.cost + day.cost,
+          inputTokens: acc.inputTokens + day.inputTokens,
+          outputTokens: acc.outputTokens + day.outputTokens,
+          totalTokens: acc.totalTokens + dayTotalTokens,
+          cacheReadTokens: acc.cacheReadTokens + day.cacheReadInputTokens,
+          cacheWriteTokens: acc.cacheWriteTokens + day.cacheCreationInputTokens,
+        }
+      },
       { cost: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
     )
 
@@ -186,7 +189,7 @@ export function Dashboard() {
   // Prepare chart data with tokens in millions for better display
   const chartData = dailyUsage.map((d: DailyUsage) => ({
     date: d.date,
-    tokens: d.inputTokens + d.outputTokens,
+    tokens: getDailyTotalTokens(d),
     cost: d.cost,
   }))
 
