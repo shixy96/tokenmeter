@@ -26,6 +26,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { ContributionGraph } from '@/components/ContributionGraph'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRefreshState } from '@/hooks/useRefreshState'
@@ -72,7 +73,9 @@ export function Dashboard() {
       })
     }
 
-    setupListener().catch(() => {})
+    setupListener().catch((err) => {
+      console.warn('Failed to setup usage-preloaded listener:', err)
+    })
 
     return () => {
       unlisten?.()
@@ -468,6 +471,9 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Yearly Activity */}
+      <ContributionGraph data={usage.dailyUsage} />
     </div>
   )
 }

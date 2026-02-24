@@ -8,12 +8,12 @@ pub mod config;
 mod error;
 pub mod services;
 pub mod state;
+mod storage;
 mod tray;
 pub mod types;
 
 use commands::providers::{delete_provider, get_providers, save_provider, test_provider};
 use commands::usage::{get_config, get_usage_summary, refresh_usage, save_config};
-use services::ccusage;
 use state::AppState;
 #[cfg(not(target_os = "macos"))]
 use std::time::Duration;
@@ -73,16 +73,18 @@ async fn set_launch_at_login(app: tauri::AppHandle, enabled: bool) -> Result<(),
 /// Preload usage data in background on app startup
 fn spawn_preload_task(app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
-        match ccusage::fetch_usage().await {
+        let state = app_handle.state::<AppState>();
+        // Acquire usage_refresh_lock before fetching to avoid race conditions with initial UI requests
+        let _refresh_guard = state.usage_refresh_lock.lock().await;
+
+        match commands::usage::fetch_and_update_history(&state).await {
             Ok(data) => {
-                if let Some(state) = app_handle.try_state::<AppState>() {
-                    *state.usage.lock().await = Some(data.clone());
-                    *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
-                    let config = state.config.lock().await.clone();
-                    tray::update_tray_menu(&app_handle, &data, &config, &[]);
-                    // Emit event to notify frontend that data is ready
-                    let _ = app_handle.emit("usage-preloaded", ());
-                }
+                *state.usage.lock().await = Some(data.clone());
+                *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
+                let config = state.config.lock().await.clone();
+                tray::update_tray_menu(&app_handle, &data, &config, &[]);
+                // Emit event to notify frontend that data is ready
+                let _ = app_handle.emit("usage-preloaded", ());
             }
             Err(e) => {
                 eprintln!("Background preload failed: {e}");
