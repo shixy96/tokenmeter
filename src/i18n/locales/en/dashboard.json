@@ -34,6 +34,15 @@
     "noModelData": "No model data available",
     "date": "Date",
     "tokens": "Tokens",
-    "cost": "Cost"
+    "cost": "Cost",
+    "yearlyActivity": "Yearly Activity",
+    "less": "Less",
+    "more": "More",
+    "noData": "No data",
+    "weekdays": {
+      "mon": "Mon",
+      "wed": "Wed",
+      "fri": "Fri"
+    }
   }
 }

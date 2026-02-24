@@ -2,6 +2,7 @@ use crate::config::AppConfig;
 use crate::error::AppError;
 use crate::services::ccusage;
 use crate::state::AppState;
+use crate::storage;
 use crate::tray;
 use crate::types::UsageSummary;
 use std::time::Duration;
@@ -9,6 +10,36 @@ use tauri::{AppHandle, Emitter, State};
 
 const MIN_REFRESH_INTERVAL: u64 = 60;
 const MAX_REFRESH_INTERVAL: u64 = 3600;
+
+pub async fn fetch_and_update_history(
+    state: &State<'_, AppState>,
+) -> Result<UsageSummary, AppError> {
+    let mut data = ccusage::fetch_usage()
+        .await
+        .map_err(|e| AppError::Fetch(e.to_string()))?;
+
+    // Load existing history, treat errors as empty history but log warning
+    let history = match storage::load_history(&state.config_dir) {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("Warning: Failed to load history: {e}");
+            Vec::new()
+        }
+    };
+
+    // Merge history
+    let merged_history = storage::merge_history(&history, &data.daily_usage);
+
+    // Save merged history (best-effort, do not block fresh data)
+    if let Err(e) = storage::save_history(&state.config_dir, &merged_history) {
+        eprintln!("Warning: Failed to save history: {e}");
+    }
+
+    // Update data with merged history
+    data.daily_usage = merged_history;
+
+    Ok(data)
+}
 
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
@@ -44,9 +75,7 @@ pub async fn get_usage_summary(
         }
     }
 
-    let data = ccusage::fetch_usage()
-        .await
-        .map_err(|e| AppError::Fetch(e.to_string()))?;
+    let data = fetch_and_update_history(&state).await?;
 
     *state.usage.lock().await = Some(data.clone());
     *state.usage_fetched_at.lock().await = Some(std::time::Instant::now());
@@ -68,7 +97,10 @@ pub async fn refresh_usage(
     let cached = state.usage.lock().await.clone();
     let config = state.config.lock().await.clone();
 
-    let data = match ccusage::fetch_usage().await {
+    // Acquire lock to prevent concurrent refreshing/writing
+    let _refresh_guard = state.usage_refresh_lock.lock().await;
+
+    let data = match fetch_and_update_history(&state).await {
         Ok(data) => data,
         Err(e) => {
             // Emit refresh-completed even on failure to re-enable buttons
@@ -76,7 +108,7 @@ pub async fn refresh_usage(
             if let Some(usage) = cached.as_ref() {
                 tray::update_tray_menu(&app, usage, &config, &[]);
             }
-            return Err(AppError::Fetch(e.to_string()));
+            return Err(e);
         }
     };
 

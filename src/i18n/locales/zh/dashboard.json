@@ -34,6 +34,15 @@
     "noModelData": "暂无模型数据",
     "date": "日期",
     "tokens": "Token",
-    "cost": "费用"
+    "cost": "费用",
+    "yearlyActivity": "年度统计",
+    "less": "少",
+    "more": "多",
+    "noData": "无数据",
+    "weekdays": {
+      "mon": "一",
+      "wed": "三",
+      "fri": "五"
+    }
   }
 }
