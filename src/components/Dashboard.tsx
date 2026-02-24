@@ -28,8 +28,10 @@ import {
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRefreshState } from '@/hooks/useRefreshState'
 import { useTheme } from '@/hooks/useTheme'
 import { useRefreshUsage, useUsageData } from '@/hooks/useUsageData'
+import { cn, getDailyTotalTokens } from '@/lib/utils'
 import { formatCost, formatTokens } from '@/types'
 
 const COLORS = [
@@ -43,16 +45,18 @@ const COLORS = [
 type TimeRange = 7 | 30
 
 function getTimeRangeButtonClass(isActive: boolean): string {
-  const base = 'px-3 py-1 text-sm rounded-md transition-colors'
-  if (isActive) {
-    return `${base} bg-background text-foreground shadow-sm`
-  }
-  return `${base} text-muted-foreground hover:text-foreground`
+  return cn(
+    'px-3 py-1 text-sm rounded-md transition-colors',
+    isActive
+      ? 'bg-background text-foreground shadow-sm'
+      : 'text-muted-foreground hover:text-foreground',
+  )
 }
 
 export function Dashboard() {
   const { data: usage, isLoading, isFetching, error } = useUsageData()
   const refreshMutation = useRefreshUsage()
+  const isGlobalRefreshing = useRefreshState()
   const queryClient = useQueryClient()
   const { toggleTheme, isDark } = useTheme()
   const [timeRange, setTimeRange] = useState<TimeRange>(7)
@@ -107,13 +111,18 @@ export function Dashboard() {
 
     // Calculate totals for the period
     const periodTotals = dailyUsage.reduce(
-      (acc, day) => ({
-        cost: acc.cost + day.cost,
-        inputTokens: acc.inputTokens + day.inputTokens,
-        outputTokens: acc.outputTokens + day.outputTokens,
-        totalTokens: acc.totalTokens + day.inputTokens + day.outputTokens,
-      }),
-      { cost: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      (acc, day) => {
+        const dayTotalTokens = getDailyTotalTokens(day)
+        return {
+          cost: acc.cost + day.cost,
+          inputTokens: acc.inputTokens + day.inputTokens,
+          outputTokens: acc.outputTokens + day.outputTokens,
+          totalTokens: acc.totalTokens + dayTotalTokens,
+          cacheReadTokens: acc.cacheReadTokens + day.cacheReadInputTokens,
+          cacheWriteTokens: acc.cacheWriteTokens + day.cacheCreationInputTokens,
+        }
+      },
+      { cost: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
     )
 
     return {
@@ -125,7 +134,7 @@ export function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <div className={cn('flex flex-col items-center justify-center h-screen gap-4', 'select-none')}>
         <RefreshCw className="w-12 h-12 animate-spin text-primary" />
         <div className="text-center">
           <p className="text-lg font-medium">{t('loading.title')}</p>
@@ -145,12 +154,12 @@ export function Dashboard() {
 
     if (isCcusageNotFound) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
+        <div className={cn('flex flex-col items-center justify-center h-screen gap-4 p-6', 'select-none')}>
           <p className="text-lg font-medium">{t('error.ccusageNotInstalled')}</p>
           <p className="text-sm text-muted-foreground text-center max-w-md">
             {t('error.ccusageDescription')}
           </p>
-          <code className="bg-muted px-3 py-2 rounded text-sm">
+          <code className="bg-muted px-3 py-2 rounded text-sm select-text cursor-text">
             npm install -g ccusage
           </code>
           <Button onClick={() => refreshMutation.mutate()}>
@@ -161,7 +170,7 @@ export function Dashboard() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 p-6">
+      <div className={cn('flex flex-col items-center justify-center h-screen gap-4 p-6', 'select-none')}>
         <p className="text-destructive">{t('error.loadFailed')}</p>
         <p className="text-sm text-muted-foreground text-center max-w-md">
           {errorMessage}
@@ -174,32 +183,23 @@ export function Dashboard() {
   if (!usage || !filteredData)
     return null
 
-  const isRefreshing = refreshMutation.isPending || isFetching
+  const isRefreshing = isGlobalRefreshing || refreshMutation.isPending || isFetching
   const { dailyUsage, modelBreakdown, periodTotals } = filteredData
-
-  // Calculate cache tokens from today's data
-  const cacheReadTokens = usage.today.cacheReadInputTokens
-  const cacheWriteTokens = usage.today.cacheCreationInputTokens
 
   // Prepare chart data with tokens in millions for better display
   const chartData = dailyUsage.map((d: DailyUsage) => ({
     date: d.date,
-    tokens: d.inputTokens + d.outputTokens,
+    tokens: getDailyTotalTokens(d),
     cost: d.cost,
   }))
 
   return (
-    <div className="relative p-6 space-y-6">
+    <div className={cn('relative p-6 space-y-6', 'select-none')}>
       <div className="absolute inset-x-0 top-0 h-6" data-tauri-drag-region />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{t('title')}</h1>
-            {isRefreshing && (
-              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-            )}
-          </div>
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export function Dashboard() {
             onClick={() => refreshMutation.mutate()}
             disabled={isRefreshing}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
           </Button>
 
           {/* Theme Toggle */}
@@ -282,11 +282,11 @@ export function Dashboard() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('stats.cacheRead')}</span>
-                <span>{formatTokens(cacheReadTokens)}</span>
+                <span>{formatTokens(periodTotals.cacheReadTokens)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('stats.cacheWrite')}</span>
-                <span>{formatTokens(cacheWriteTokens)}</span>
+                <span>{formatTokens(periodTotals.cacheWriteTokens)}</span>
               </div>
             </div>
           </CardContent>
@@ -296,7 +296,7 @@ export function Dashboard() {
       {/* Charts */}
       <div className="flex flex-wrap gap-4">
         {/* Usage Trend Chart */}
-        <Card className="flex-1 min-w-[400px]">
+        <Card className="flex-[2] min-w-[400px]">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
@@ -307,6 +307,12 @@ export function Dashboard() {
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData}>
+                <defs>
+                  <linearGradient id="tokenBarGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--color-border)"
@@ -357,7 +363,7 @@ export function Dashboard() {
                 <Bar
                   yAxisId="left"
                   dataKey="tokens"
-                  fill="#6b7280"
+                  fill="url(#tokenBarGradient)"
                   radius={[4, 4, 0, 0]}
                   name="tokens"
                 />
@@ -389,9 +395,9 @@ export function Dashboard() {
           <CardContent className="h-[300px]">
             {modelBreakdown.length > 0
               ? (
-                  <div className="flex h-full">
+                  <div className="flex flex-col h-full gap-2">
                     {/* Donut Chart */}
-                    <div className="w-1/2">
+                    <div className="flex-1 min-h-[160px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -400,8 +406,8 @@ export function Dashboard() {
                             nameKey="model"
                             cx="50%"
                             cy="50%"
-                            innerRadius="30%"
-                            outerRadius="50%"
+                            innerRadius="40%"
+                            outerRadius="80%"
                           >
                             {modelBreakdown.map((entry, index) => (
                               <Cell
@@ -426,7 +432,7 @@ export function Dashboard() {
                       </ResponsiveContainer>
                     </div>
                     {/* Model List */}
-                    <div className="w-1/2 overflow-y-auto space-y-3 pr-2">
+                    <div className="flex-none max-h-[120px] overflow-y-auto space-y-2 pr-2">
                       {modelBreakdown.slice(0, 6).map((model, index) => (
                         <div
                           key={model.model}
@@ -438,16 +444,16 @@ export function Dashboard() {
                               style={{ backgroundColor: COLORS[index % COLORS.length] }}
                             />
                             <span className="truncate text-muted-foreground" title={model.model}>
-                              {model.model.length > 20 ? `${model.model.slice(0, 20)}...` : model.model}
+                              {model.model}
                             </span>
                           </div>
-                          <span className="font-medium ml-2">
+                          <span className="font-medium ml-2 shrink-0">
                             {formatCost(model.cost)}
                           </span>
                         </div>
                       ))}
                       {modelBreakdown.length > 6 && (
-                        <div className="text-xs text-muted-foreground text-center pt-2">
+                        <div className="text-xs text-muted-foreground text-center pt-1">
                           {t('chart.otherModels', { count: modelBreakdown.length - 6 })}
                         </div>
                       )}

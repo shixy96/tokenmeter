@@ -19,7 +19,9 @@ use state::AppState;
 use std::time::Duration;
 use tauri::{Emitter, Manager};
 
-/// Set Dock icon visibility on macOS
+use crate::tray::{navigate_to, show_window_with_dock, MAIN_WINDOW_LABEL, TRAY_WINDOW_LABEL};
+
+/// Set Dock icon visibility on macOS (only for internal window events)
 #[cfg(target_os = "macos")]
 fn set_dock_visible(app: &tauri::AppHandle, visible: bool) {
     use tauri::ActivationPolicy;
@@ -34,28 +36,26 @@ fn set_dock_visible(app: &tauri::AppHandle, visible: bool) {
     }
 }
 
-fn show_window_with_dock(app: &tauri::AppHandle) {
-    #[cfg(target_os = "macos")]
-    set_dock_visible(app, true);
-    if let Some(window) = app.get_webview_window("dashboard") {
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
-}
-
+/// Opens the dashboard window and navigates to the dashboard view.
+///
+/// This command shows the main window (with Dock icon on macOS) and emits
+/// a navigation event to switch to the dashboard tab.
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 fn open_dashboard(app: tauri::AppHandle) {
     show_window_with_dock(&app);
+    navigate_to(&app, "dashboard");
 }
 
+/// Opens the settings window and navigates to the settings view.
+///
+/// This command shows the main window (with Dock icon on macOS) and emits
+/// a navigation event to switch to the settings tab.
 #[allow(clippy::needless_pass_by_value)]
 #[tauri::command]
 fn open_settings(app: tauri::AppHandle) {
     show_window_with_dock(&app);
-    if let Some(window) = app.get_webview_window("dashboard") {
-        let _ = window.emit("navigate", "settings");
-    }
+    navigate_to(&app, "settings");
 }
 
 #[tauri::command]
@@ -130,7 +130,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 if app.tray_by_id(tray::TRAY_ID).is_some() {
-                    if let Some(window) = app.get_webview_window("tray") {
+                    if let Some(window) = app.get_webview_window(TRAY_WINDOW_LABEL) {
                         use tauri_plugin_nspopover::{ToPopoverOptions, WindowExt};
                         window.to_popover(ToPopoverOptions {
                             is_fullsize_content: true,
@@ -153,15 +153,15 @@ pub fn run() {
 
                     #[cfg(target_os = "macos")]
                     {
-                        // Only hide dock if it's the dashboard window being closed
-                        if window.label() == "dashboard" {
+                        // Only hide dock if it's the main window being closed
+                        if window.label() == MAIN_WINDOW_LABEL {
                             set_dock_visible(window.app_handle(), false);
                         }
                     }
                 }
                 tauri::WindowEvent::Focused(false) => {
                     // Auto-hide tray window when it loses focus
-                    if window.label() == "tray" {
+                    if window.label() == TRAY_WINDOW_LABEL {
                         #[cfg(not(target_os = "macos"))]
                         {
                             if let Some(delay_ms) = tray::blur_hide_delay_ms() {

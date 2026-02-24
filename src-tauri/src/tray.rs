@@ -4,15 +4,42 @@ use crate::types::{format_number, ProviderTrayStats, UsageSummary};
 use std::sync::atomic::Ordering;
 use tauri::{
     image::Image,
+    menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter,
+    AppHandle, Emitter, Manager,
 };
 #[cfg(target_os = "macos")]
 use tauri_plugin_nspopover::AppExt;
 
+/// Window label for the main dashboard window.
+pub const MAIN_WINDOW_LABEL: &str = "main";
+
+/// Window label for the tray popover window.
+pub const TRAY_WINDOW_LABEL: &str = "tray";
+
+/// Tray icon identifier.
 pub const TRAY_ID: &str = "main";
-#[cfg(not(target_os = "macos"))]
-const TRAY_WINDOW_LABEL: &str = "tray";
+
+/// Show the dashboard window and bring it to focus.
+pub fn show_window_with_dock(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::ActivationPolicy;
+        let _ = app.set_activation_policy(ActivationPolicy::Regular);
+        let _ = app.show();
+    }
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Emit navigation event to main window.
+pub fn navigate_to(app: &AppHandle, page: &str) {
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        let _ = window.emit("navigate", page);
+    }
+}
 
 // Store the last time the tray window was shown to prevent immediate auto-hide on blur
 // (which can happen due to focus stealing by the menu bar on macOS).
@@ -164,8 +191,17 @@ fn set_macos_tray_attributed_title(_app: &AppHandle, _title: String, _level: Opt
 const TRAY_ICON_PNG: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/icons/tray.png"));
 
 pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    // We do NOT attach a menu, as we want to control the click event ourselves
-    // to toggle the window.
+    // Create menu items
+    let dashboard_item = MenuItemBuilder::with_id("dashboard", "Dashboard").build(app)?;
+    let settings_item = MenuItemBuilder::with_id("settings", "Settings").build(app)?;
+    let quit_item = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
+
+    let menu = MenuBuilder::new(app)
+        .item(&dashboard_item)
+        .item(&settings_item)
+        .separator()
+        .item(&quit_item)
+        .build()?;
 
     let icon = Image::from_bytes(TRAY_ICON_PNG)
         .or_else(|e| {
@@ -182,7 +218,22 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .icon_as_template(true)
+        .menu(&menu)
         .show_menu_on_left_click(false)
+        .on_menu_event(move |app, event| match event.id.as_ref() {
+            "dashboard" => {
+                show_window_with_dock(app);
+                navigate_to(app, "dashboard");
+            }
+            "settings" => {
+                show_window_with_dock(app);
+                navigate_to(app, "settings");
+            }
+            "quit" => {
+                app.exit(0);
+            }
+            _ => {}
+        })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
@@ -257,13 +308,6 @@ fn set_tray_title_with_level(
         None
     };
     set_macos_tray_attributed_title(app, title.to_string(), level);
-}
-
-/// Updates tray title to include a refreshing indicator while keeping old data.
-pub fn update_tray_refreshing(app: &AppHandle, usage: &UsageSummary, config: &AppConfig) {
-    let title = format_tray_title(&config.menu_bar.format, usage);
-    let title_with_indicator = format!("{title} ⟳");
-    set_tray_title_with_level(app, &title_with_indicator, usage, config);
 }
 
 /// Updates tray menu content
@@ -345,6 +389,8 @@ mod tests {
                     cost,
                     input_tokens: 1000,
                     output_tokens: 1000,
+                    cache_creation_input_tokens: 0,
+                    cache_read_input_tokens: 0,
                     models: vec![],
                 })
                 .collect(),
